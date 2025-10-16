@@ -53,3 +53,19 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Valgrind debug log
+WG_LOG
+
+#Tags
+tags
+
+#Binaries
+bin
+build
+
+#VS code
+.vscode
+
+#wdir contents
+wdir

@@ -1,5 +1,6 @@
 #!/bin/sh
 
+mkdir bin
 mkdir wdir
 mkdir wdir/storage
 touch wdir/file_descriptions

@@ -128,38 +128,15 @@ int query_extract_from_buf(session *sess, char **output_line) {
 
 void perform_session_action(session *sess, char *line, server_data_t *s_d) {
   int state = sess->state;
-  char tmp_buf[256];
   int priv;
-  int tmp_buf_pos;
   int res;
   /* while (sess->buf_used) { */
   switch (state) {
   case OP_LOGIN_USR:
-    res = find_user(line);
-    if (res == -2) {
-      sess->state = ERR;
-      sess->reason = EXIT;
-      session_send_string(sess, "Bye!");
-      break;
-    }
-    sess->userpos = res;
-    sess->state = OP_LOGIN_PSS;
-    session_send_string(sess, "password> ");
+    process_user_name(line, sess);
     break;
   case OP_LOGIN_PSS:
-    if (sess->userpos == -1) {
-      sess->state = ERR;
-      sess->reason = LOGIN;
-    } else {
-      if (login(sess, line)) {
-        sess->state = OP_WAIT;
-        sprintf(tmp_buf, "Welcome, %s\n", sess->uname);
-        session_send_string(sess, tmp_buf);
-      } else {
-        sess->state = ERR;
-        sess->reason = LOGIN;
-      }
-    }
+    login(sess, line);
     break;
   case OP_WAIT:
     process_client_command(line, sess, s_d);

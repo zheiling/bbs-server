@@ -18,12 +18,15 @@ enum sess_states {
   OP_EDIT_USER,
   OP_LOGIN_USR,
   OP_LOGIN_PSS,
+  OP_LOGIN_ANON,
   OP_WAIT,
   OP_UPLOAD,
   OP_UPLOAD_DESCRIPTION,
+  OP_REGISTER,
   ERR,
   FIN
 };
+
 
 enum user_privileges {
   ADD_FILE = 01,

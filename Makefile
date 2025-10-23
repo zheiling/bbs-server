@@ -1,4 +1,4 @@
-CFLAGS  := -ggdb -Wall -pedantic
+CFLAGS  := -ggdb -Wall -pedantic -lpq
 
 SRC_DIR := src
 OBJ_DIR := src/obj

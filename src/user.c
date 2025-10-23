@@ -3,68 +3,55 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "db.h"
 
-long int find_user(char *uname) {
-  FILE *fptr = fopen(FILE_USER_LIST_NAME, "r");
-
-  if (fptr == NULL) {
-    perror(FILE_USER_LIST_NAME);
-    exit(9);
-  }
-
-  char *line = NULL;
-  size_t bsize = WSIZE;
-  char b_uname[32];
-  long int cur_pos = 0;
-  int lsize = 0;
-
+int process_user_name(char *uname, session *sess) {
   if (!strncmp(uname, "exit", sizeof "exit")) {
-    return -2;
+    sess->state = ERR;
+    sess->reason = EXIT;
+    session_send_string(sess, "Bye!");
+    return 1;
   }
 
-  while (getline(&line, &bsize, fptr)) {
-    if (line[0] == '\b')
-      break;
-    sscanf(line, "%s", b_uname);
-    if (!strcmp(uname, b_uname)) {
-      line = NULL;
-      fclose(fptr);
-      return cur_pos;
-    } else {
-      cur_pos += lsize;
-      line = NULL;
-    }
+  if (!strncmp(uname, "register", sizeof "register")) {
+    sess->state = OP_REGISTER;
+    session_send_string(sess, "Your username > ");
+    return 2;
   }
 
-  fclose(fptr);
-  return -1;
+  if (!strncmp(uname, "anon", sizeof "anon")) {
+    sess->state = OP_LOGIN_ANON;
+    session_send_string(sess, "Welcome, Anonymous!");
+    return 3;
+  }
+
+  sess->uname = malloc(strlen(uname) + 1);
+  strcpy(sess->uname, uname);
+  sess->state = OP_LOGIN_PSS;
+  session_send_string(sess, "password> ");
+
+  return 0;
 }
 
 /* returns 1 if success */
 int login(session *sess, char *pass) {
-  FILE *fptr = fopen(FILE_USER_LIST_NAME, "r");
-  fseek(fptr, sess->userpos, SEEK_SET);
-  int res = 0;
-
-  char *line = NULL;
-  size_t lsize = WSIZE;
-  char *pass_tok, *name_tok, *priv_tok;
-
-  getline(&line, &lsize, fptr);
-  name_tok = strtok(line, " ");
-  pass_tok = strtok(NULL, " ");
-
-  if (!strcmp(pass_tok, pass)) {
-    int n_len = pass_tok - name_tok - 1; /* exclude space */
-    sess->uname = malloc(n_len + 1);
-    strncpy(sess->uname, name_tok, n_len);
-    sess->uname[n_len] = 0;
-    priv_tok = strtok(NULL, " ");
-    sess->privileges = (char)atoi(priv_tok);
-    res = 1;
+  char tmp_string[256];
+  i_auth_t cred;
+  o_auth_t response;
+  cred.name = sess->uname;
+  cred.pass = pass;
+  db_user_auth(&cred, &response);
+  if (response.is_logged) {
+    sess->state = OP_WAIT;
+    sess->privileges = (char)atoi(&response.privileges);
+    sprintf(tmp_string, "Welcome, %s\n", sess->uname);
+    session_send_string(sess, tmp_string);
+    return 0;
+  } else {
+    sess->state = ERR;
+    sess->reason = EXIT;
+    return 1;
   }
-  fclose(fptr);
-  return res;
 }
 
 // TODO: синхронизовать c C++

@@ -1,6 +1,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 #include <stddef.h>
+#include <stdint.h>
 #define PORT 2000
 #define MAX_CONNECTIONS 1024
 #define INBUFSIZE 1024
@@ -56,6 +57,7 @@ typedef struct session {
   char *fpath;
   char f_perm;
   char *fdesc;
+  uint32_t hash;
   size_t fsize;
   size_t f_rest;
   long int userpos; /* hint to the position in user list */
@@ -76,5 +78,7 @@ typedef struct server_data_t {
   char *welcome_message;
   int ls;
 } server_data_t;
+
+#define FILE_HASH_SEED 898
 
 #endif

@@ -8,5 +8,5 @@ typedef struct {
     int is_logged;
 } o_auth_t;
 
-int init_connection();
+int init_db_connection();
 int db_user_auth(i_auth_t *credentials, o_auth_t *response);

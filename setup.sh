@@ -5,10 +5,8 @@ mkdir wdir
 mkdir wdir/storage
 touch wdir/file_descriptions
 touch wdir/welcome
-touch wdir/userlist
 
 echo "Welcome to the BBS Setup!" >> wdir/welcome
-echo "user 1234 15" >> wdir/userlist
 
 # Test file
 touch wdir/storage/testfile.txt

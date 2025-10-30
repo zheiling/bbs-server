@@ -3,10 +3,12 @@
 #include "file_p.h"
 #include "main.h"
 #include "user.h"
+#include "db.h"
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,14 +41,8 @@ session *make_new_session(int fd, struct sockaddr_in *from, char *wm) {
   sess->state = OP_LOGIN_USR;
   sess->reason = NO_REASON;
   sess->uname = NULL;
-  sess->f_perm = 0;
-  sess->fdesc = NULL;
   sess->sd = fd;
-  sess->fd = -1;
-  sess->fsize = 0;
-  sess->f_rest = 0;
-  sess->fname = NULL;
-  sess->fpath = NULL;
+  sess->file = NULL;
   session_send_string(sess, wm);
   session_send_string(sess, "login> ");
   return sess;
@@ -150,61 +146,22 @@ void perform_session_action(session *sess, char *line, server_data_t *s_d) {
   case OP_UPLOAD_DESCRIPTION:
     res = file_upload_description(sess, line, s_d);
     if (res) {
-      file_save_db(sess, s_d);
-      session_send_string(sess, "File is saved!\n");
-      sess->state = OP_WAIT;
+      if (db_save_file(sess)) {
+        clear_file_from_sess(sess);
+        session_send_string(sess, "File is saved!\n");
+        sess->state = OP_WAIT;
+      } else {
+        // TODO: error case
+      }
     }
     break;
   }
   /* } */
 }
 
-int file_save_db(session *sess, server_data_t *s_d) {
-  /* crate and fill the new item */
-  fl_t *nitem = malloc(sizeof(fl_t));
-  nitem->description = sess->fdesc;
-  nitem->name = sess->fname;
-  nitem->size = sess->fsize;
-  nitem->owner = malloc(strlen(sess->uname));
-  strcpy(nitem->owner, sess->uname);
-  nitem->permissions = sess->f_perm;
-  nitem->next = NULL;
-
-  /* set to NULL and clear */
-  sess->fname = NULL;
-  free(sess->fpath);
-  sess->fpath = NULL;
-  sess->fdesc = NULL;
-  if (sess->fd > -1) {
-    close(sess->fd);
-  }
-  sess->fd = -1;
-  sess->fsize = 0;
-  sess->f_rest = 0;
-
-  /* add new item to list */
-  s_d->fl_current->next = nitem;
-  s_d->fl_current = nitem;
-
-  /* save to the db file */
-  int fd = open(FILE_DESCRIPTIONS_NAME, O_WRONLY);
-  lseek(fd, 0, SEEK_END);
-  char permissions[4];
-  snprintf(permissions, 3, "%d", nitem->permissions);
-  unsigned int res_len = strlen(nitem->name) + 1 + strlen(nitem->owner) + 1 +
-                         strlen(permissions) + 1 + strlen(nitem->description) +
-                         1;
-  char *res_str = malloc(res_len);
-  res_len = sprintf(res_str, "%s\n%s\n%s\n%s", nitem->name, nitem->owner,
-                    permissions, nitem->description);
-  nitem->description[strlen(nitem->description) - 6] = 0;
-  write(fd, res_str, res_len);
-  close(fd);
-  return 0;
-}
-
 void close_session(session *connections[], int sd) {
   if (connections[sd] != NULL) {
+    if (connections[sd]->file) clear_file_from_sess(connections[sd]);
     close(sd);
     connections[sd]->sd = -1;
     free(connections[sd]->uname);

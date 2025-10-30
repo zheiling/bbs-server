@@ -7,11 +7,16 @@ BIN_DIR := bin
 SRCS := $(wildcard $(SRC_DIR)/*.c)
 OBJS := $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
+OBJS += murmur3.o
+
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_DIR)/%.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 bbs-server: $(OBJS)
 	$(CC) $(CFLAGS) $^ -o $(BIN_DIR)/$@
+
+murmur3.o: $(SRC_DIR)/libs/murmur3/murmur3.c $(SRC_DIR)/libs/murmur3/murmur3.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
 ifneq (clean, $(MAKECMDGOALS))
 -include deps.mk

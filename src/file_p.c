@@ -1,7 +1,6 @@
 #include "file_p.h"
 #include "libs/murmur3/murmur3.h"
 #include "main.h"
-#include "session.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -53,14 +52,14 @@ void file_list(session *sess, server_data_t *s_d) {
 }
 
 int file_send_prepare(session *sess, char *line, server_data_t *s_d) {
-  // TODO: рефактор в C++
+  sess->file = malloc(sizeof(session_file));
   int sd = sess->sd;
-  char fname[32];
+  char fname[50];
   sscanf(line, "%*s %*s %s", fname);
   char filepath[256];
   sprintf(filepath, "%s/%s", STORAGE_FOLDER, fname);
-  size_t fsize;
   char st_message[256];
+  size_t fsize;
 
   int file_d = open(filepath, O_RDONLY);
 
@@ -76,13 +75,13 @@ int file_send_prepare(session *sess, char *line, server_data_t *s_d) {
   fsize = lseek(file_d, 0, SEEK_END);
   lseek(file_d, 0, SEEK_SET);
 
-  sess->fd = file_d;
-  sess->fsize = fsize;
-  sess->f_rest = fsize;
-  sess->fname = malloc(strlen(fname));
+  sess->file->fd = file_d;
+  sess->file->size = fsize;
+  sess->file->rest = fsize;
+  sess->file->name = malloc(strlen(fname));
   int fname_len = strlen(fname) - 1;
-  strncpy(sess->fname, fname, fname_len);
-  sess->fname[fname_len] = 0;
+  strncpy(sess->file->name, fname, fname_len);
+  sess->file->name[fname_len] = 0;
   return 0;
 }
 
@@ -111,16 +110,19 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
   size_t fsize;
   int perm;
   sscanf(line, "file upload \"%s %zd %d", fname, &fsize, &perm);
-  sess->fname = malloc(sizeof(char) * strlen(fname));
-  sess->f_perm = (char)perm;
-  strncpy(sess->fname, fname, strlen(fname) - 1); // remove the last \"
+  sess->file = malloc(sizeof(session_file));
+  sess->file->name = malloc(sizeof(char) * strlen(fname));
+  // TODO: в конце гуляет \n и \"
+  sess->file->permissions = (char)perm;
+  sess->file->description = NULL;
+  strncpy(sess->file->name, fname, strlen(fname) - 1); // remove the last \"
 
   char mes[256];
   char mes_len = 0;
   struct statvfs st_str;
   statvfs(".", &st_str);
   size_t available_space = st_str.f_bavail * st_str.f_bsize;
-  if (strlen(sess->fname) > st_str.f_namemax) {
+  if (strlen(sess->file->name) > st_str.f_namemax) {
     mes_len = sprintf(mes, "file name is tool long\n");
     write(sd, mes, mes_len);
     sess->state = OP_WAIT;
@@ -136,81 +138,85 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
 
   char hashed_dir_name[3];
   char hashed_name[7];
-  int seed = FILE_HASH_SEED;
+  sess->file->seed = FILE_HASH_SEED;
   int file_d;
 
   for (;;) {
-    MurmurHash3_x86_32(sess->fname, strlen(sess->fname), FILE_HASH_SEED,
-                       &(sess->hash));
+    MurmurHash3_x86_32(sess->file->name, strlen(sess->file->name), sess->file->seed,
+                       &sess->file->hash);
 
-    extract_names_from_hash(sess->hash, hashed_dir_name, hashed_name);
+    extract_names_from_hash(sess->file->hash, hashed_dir_name, hashed_name);
 
-    sess->fpath = malloc(sizeof(STORAGE_FOLDER) + 2 + 9);
-    sprintf(sess->fpath, "%s/%s/%s", STORAGE_FOLDER, hashed_dir_name,
+    sess->file->path = malloc(sizeof(STORAGE_FOLDER) + 2 + 9);
+    sprintf(sess->file->path, "%s/%s/%s", STORAGE_FOLDER, hashed_dir_name,
             hashed_name);
+
+    chdir(STORAGE_FOLDER);
 
     if (!directory_exists(hashed_dir_name)) {
       mkdir(hashed_dir_name, 0700);
     }
-    chdir(hashed_dir_name);
+    chdir("../");
 
-    file_d = open(sess->fpath, O_WRONLY | O_CREAT | O_EXCL, 0666);
+    file_d = open(sess->file->path, O_WRONLY | O_CREAT | O_EXCL, 0666);
     if (file_d == -1) {
       if (errno == EEXIST) {
-        seed++;
-        free(sess->fpath);
-        sess->fpath = NULL;
+        sess->file->seed++;
+        free(sess->file->path);
+        sess->file->path = NULL;
         continue;
       }
       mes_len = sprintf(mes, "Can't create file with such name: \"%s\"\n",
-                        sess->fname);
+                        sess->file->name);
       write(sd, mes, mes_len);
       clear_file_from_sess(sess);
+      sess->file = NULL;
       return -1;
     }
+    break;
   }
 
   mes_len = sprintf(mes, "accept");
-  sess->fd = file_d;
-  sess->fsize = fsize;
-  sess->f_rest = fsize;
+  sess->file->fd = file_d;
+  sess->file->size = fsize;
+  sess->file->rest = fsize;
   write(sd, mes, mes_len);
   return 0;
 }
 
-void clear_file_from_sess(session *sess) {
-  if (sess->fname != NULL) {
-    free(sess->fname);
-    sess->fname = NULL;
+void clear_file_from_sess(session *s) {
+  session_file * sf = s->file;
+  if (sf->name != NULL) {
+    free(sf->name);
+    sf->name = NULL;
   }
-  if (sess->fpath != NULL) {
-    free(sess->fpath);
-    sess->fpath = NULL;
+  if (sf->path != NULL) {
+    free(sf->path);
+    sf->path = NULL;
   }
-  if (sess->fdesc != NULL) {
-    free(sess->fdesc);
-    sess->fdesc = NULL;
+  if (sf->description != NULL) {
+    free(sf->description);
+    sf->description = NULL;
   }
-  if (sess->fd > -1) {
-    close(sess->fd);
+  if (sf->fd > -1) {
+    close(sf->fd);
   }
-  sess->fd = -1;
-  sess->fsize = 0;
-  sess->f_rest = 0;
+  free(sf);
+  s->file = NULL;
 }
 
 void file_download_upload(session *sess, enum f_actions f_action) {
-  int source_d = f_action == F_DOWNLOAD ? sess->fd : sess->sd;
-  int dest_d = f_action == F_DOWNLOAD ? sess->sd : sess->fd;
+  int source_d = f_action == F_DOWNLOAD ? sess->file->fd : sess->sd;
+  int dest_d = f_action == F_DOWNLOAD ? sess->sd : sess->file->fd;
   char buf[INBUFSIZE];
   int rlen = read(source_d, buf, INBUFSIZE);
   if (rlen == 0) {
-    if (sess->f_rest) {
+    if (sess->file->rest) {
       if (f_action == F_DOWNLOAD) {
-        fprintf(stderr, "Error downloading file %s!\n", sess->fname);
+        fprintf(stderr, "Error downloading file %s!\n", sess->file->name);
       } else {
-        fprintf(stderr, "Error uploading file %s!\n", sess->fname);
-        unlink(sess->fpath); /* remove file */
+        fprintf(stderr, "Error uploading file %s!\n", sess->file->name);
+        unlink(sess->file->path); /* remove file */
       }
       clear_file_from_sess(sess);
     }
@@ -218,13 +224,13 @@ void file_download_upload(session *sess, enum f_actions f_action) {
     return;
   }
   write(dest_d, buf, rlen);
-  sess->f_rest -= rlen;
-  if (!sess->f_rest) {
+  sess->file->rest -= rlen;
+  if (!sess->file->rest) {
     if (f_action == F_DOWNLOAD) {
-      printf("File %s is downloaded from the server\n", sess->fname);
+      printf("File %s is downloaded from the server\n", sess->file->name);
       clear_file_from_sess(sess);
     } else {
-      printf("File %s is uploaded to the server\n", sess->fname);
+      printf("File %s is uploaded to the server\n", sess->file->name);
     }
     if (f_action == F_UPLOAD) {
       sess->state = OP_UPLOAD_DESCRIPTION;
@@ -256,27 +262,31 @@ size_t get_file_size(char *dir_n, char *file_n) {
 
 /* returns 1 if there is :END: ; 0 if opposite */
 int file_upload_description(session *sess, char *line, server_data_t *s_d) {
-  for (;;) {
-    if (line != NULL && sess->fdesc == NULL) { /* first query */
-      sess->fdesc = malloc(strlen(line) + 1);
-      strcpy(sess->fdesc, line);
-    } else { /* subsequent queries */
-      if (line == NULL) {
-        if (sess->buf_used > 0) {
-          query_extract_from_buf(sess, &line);
-        } else {
-          return 0;
-        }
-      }
-      sess->fdesc =
-          realloc(sess->fdesc, strlen(sess->fdesc) + strlen(line) + 1);
-      strcat(sess->fdesc, line);
-    }
-    char *desc_end = strstr(line, ":END:");
-    if (desc_end != NULL) {
-      return 1;
-    }
-  }
+  // for (;;) {
+  //   if (line != NULL && sess->file->description == NULL) { /* first query */
+  //     sess->file->description = malloc(strlen(line) + 1);
+  //     strcpy(sess->file->description, line);
+  //   } else { /* subsequent queries */
+  //     if (line == NULL) {
+  //       if (sess->buf_used > 0) {
+  //         query_extract_from_buf(sess, &line);
+  //       } else {
+  //         return 0;
+  //       }
+  //     }
+  //     sess->file->description =
+  //         realloc(sess->file->description, strlen(sess->file->description) + strlen(line) + 1);
+  //     strcat(sess->file->description, line);
+  //   }
+  //   char *desc_end = strstr(line, ":END:");
+  //   if (desc_end != NULL) {
+  //     return 1;
+  //   }
+  // }
+  char _msg[] = "This is a test \n Description!\n";
+  sess->file->description = malloc(sizeof(_msg) + 1);
+  strcpy(sess->file->description, _msg);
+  return 1;
 }
 
 // TODO: синхронизовать c C++

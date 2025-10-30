@@ -42,6 +42,18 @@ enum error_reason {
   EXIT,
 };
 
+typedef struct {
+  char *name;
+  char *path;
+  char *description;
+  char permissions;
+  size_t size;
+  size_t rest;
+  uint32_t hash;
+  int seed;
+  int fd;
+} session_file;
+
 typedef struct session {
   unsigned long from_ip;
   unsigned short from_port;
@@ -51,16 +63,9 @@ typedef struct session {
   enum error_reason reason;
   char privileges;
   char *uname;
+  uint32_t uid;
   int sd; /* session descriptor */
-  int fd; /* file descriptor */
-  char *fname;
-  char *fpath;
-  char f_perm;
-  char *fdesc;
-  uint32_t hash;
-  size_t fsize;
-  size_t f_rest;
-  long int userpos; /* hint to the position in user list */
+  session_file *file;
 } session;
 
 typedef struct fl_t {

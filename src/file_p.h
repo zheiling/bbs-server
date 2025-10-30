@@ -12,5 +12,5 @@ void file_download_upload(session *sess, enum f_actions);
 int file_receive_prepare(session *sess, char *line, server_data_t *s_d);
 int file_upload_description(session *sess, char *line, server_data_t *s_d);
 int file_save_db(session *sess, server_data_t *s_d);
-void clear_file_from_sess(session *sess);
+void clear_file_from_sess(session *);
 #endif

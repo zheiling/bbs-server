@@ -40,10 +40,12 @@ int login(session *sess, char *pass) {
   o_auth_t response;
   cred.name = sess->uname;
   cred.pass = pass;
+  response.uid = 0;
   db_user_auth(&cred, &response);
-  if (response.is_logged) {
+  if (response.uid) {
     sess->state = OP_WAIT;
     sess->privileges = (char)atoi(&response.privileges);
+    sess->uid = response.uid;
     sprintf(tmp_string, "Welcome, %s\n", sess->uname);
     session_send_string(sess, tmp_string);
     return 0;

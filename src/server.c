@@ -4,11 +4,11 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/select.h>
-#include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -35,8 +35,8 @@ void server_main_loop(server_data_t *s_d) {
         if (i > maxfd)
           maxfd = i;
         /* active uploads/downloads */
-        int fd = connections[i]->fd;
-        if (fd > -1) {
+        if (connections[i]->file && connections[i]->file->fd > -1) {
+          int fd = connections[i]->file->fd;
           FD_SET(fd, &readfds);
           if (fd > maxfd)
             maxfd = fd;
@@ -61,8 +61,8 @@ void server_main_loop(server_data_t *s_d) {
       /* download/upload file */
       if (connections[i] != NULL && (connections[i]->state == OP_UPLOAD ||
                                      connections[i]->state == OP_DOWNLOAD)) {
-        if (connections[i] != NULL && connections[i]->fd > -1 &&
-            FD_ISSET(connections[i]->fd, &readfds)) {
+        if (connections[i]->file && connections[i]->file->fd > -1 &&
+            FD_ISSET(connections[i]->file->fd, &readfds)) {
           perform_session_action(connections[i], NULL, s_d);
         }
       } else if (connections[i] != NULL && FD_ISSET(i, &readfds)) {

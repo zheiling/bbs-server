@@ -115,20 +115,15 @@ int db_save_file(session *s) {
   int collision_id = 0;
   session_file *sf = s->file;
 
-  if (sf->seed != FILE_HASH_SEED) {
-    // TODO: сиды обрабатываются неправильно
-    collision_id = db_save_collision(sf->hash);
-  }
-
   int32_t uid_n = htonl(s->uid);
   int64_t size_n = htonl(sf->size);
-  int32_t coll_n = htonl(collision_id);
+  int32_t hash_n = htonl(sf->hash);
   int32_t perm_n = htonl(sf->permissions);
 
   paramValues[0] = (char *)&uid_n;
   paramValues[1] = sf->name;
   paramValues[2] = (char *)&size_n;
-  paramValues[3] = (char *)&coll_n;
+  paramValues[3] = (char *)&hash_n;
   paramValues[4] = sf->description;
   paramValues[5] = (char *)&perm_n;
 
@@ -148,39 +143,14 @@ int db_save_file(session *s) {
 
   res = PQexecParams(conn,
                      "INSERT INTO files(user_id, name, size, created_at, "
-                     "collision_id, description, permissions) "
-                     "VALUES ($1, $2, $3, NOW(), NULLIF($4, 0), $5, $6) "
+                     "hash, description, permissions) "
+                     "VALUES ($1, $2, $3, NOW(), $4, $5, $6) "
                      "RETURNING id",
                      6, NULL, paramValues, paramLengths, paramFormats, TEXT);
 
   if (PQresultStatus(res) != PGRES_TUPLES_OK && !PQntuples(res))
     return exit_query_2(0);
   
-  int id = atoi(PQgetvalue(res, 0, 0));
-  clearRes();
-  return id;
-}
-
-int db_save_collision(uint32_t hash) {
-  const char *paramValues[1];
-  int paramLengths[1];
-  int paramFormats[1];
-
-  uint32_t hash_n = htonl(hash);
-
-  paramValues[0] = (char *)&hash_n;
-  paramLengths[0] = sizeof(uint32_t);
-  paramFormats[0] = BIN;
-
-  res = PQexecParams(conn,
-                     "INSERT INTO file_collisions(hash) "
-                     "VALUES ($1) "
-                     "RETURNING id",
-                     1, NULL, paramValues, paramLengths, paramFormats, TEXT);
-
-  if (PQresultStatus(res) != PGRES_TUPLES_OK && !PQntuples(res))
-    return exit_query_2(0);
-
   int id = atoi(PQgetvalue(res, 0, 0));
   clearRes();
   return id;

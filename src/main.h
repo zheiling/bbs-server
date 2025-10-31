@@ -28,7 +28,6 @@ enum sess_states {
   FIN
 };
 
-
 enum user_privileges {
   ADD_FILE = 01,
   EDIT_FILES = 02,
@@ -50,7 +49,6 @@ typedef struct {
   size_t size;
   size_t rest;
   uint32_t hash;
-  int seed;
   int fd;
 } session_file;
 

@@ -1,6 +1,7 @@
 #include "file_p.h"
 #include "libs/murmur3/murmur3.h"
 #include "main.h"
+#include "session.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -112,10 +113,10 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
   sscanf(line, "file upload \"%s %zd %d", fname, &fsize, &perm);
   sess->file = malloc(sizeof(session_file));
   sess->file->name = malloc(sizeof(char) * strlen(fname));
-  // TODO: в конце гуляет \n и \"
   sess->file->permissions = (char)perm;
   sess->file->description = NULL;
-  strncpy(sess->file->name, fname, strlen(fname) - 1); // remove the last \"
+  strncpy(sess->file->name, fname, strlen(fname) - 1);
+  sess->file->name[strlen(fname) - 1] = 0;
 
   char mes[256];
   char mes_len = 0;
@@ -138,12 +139,12 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
 
   char hashed_dir_name[3];
   char hashed_name[7];
-  sess->file->seed = FILE_HASH_SEED;
+  int seed = FILE_HASH_SEED;
   int file_d;
 
   for (;;) {
-    MurmurHash3_x86_32(sess->file->name, strlen(sess->file->name), sess->file->seed,
-                       &sess->file->hash);
+    MurmurHash3_x86_32(sess->file->name, strlen(sess->file->name),
+                       seed, &sess->file->hash);
 
     extract_names_from_hash(sess->file->hash, hashed_dir_name, hashed_name);
 
@@ -161,7 +162,7 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
     file_d = open(sess->file->path, O_WRONLY | O_CREAT | O_EXCL, 0666);
     if (file_d == -1) {
       if (errno == EEXIST) {
-        sess->file->seed++;
+        seed++;
         free(sess->file->path);
         sess->file->path = NULL;
         continue;
@@ -185,7 +186,7 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
 }
 
 void clear_file_from_sess(session *s) {
-  session_file * sf = s->file;
+  session_file *sf = s->file;
   if (sf->name != NULL) {
     free(sf->name);
     sf->name = NULL;
@@ -262,31 +263,30 @@ size_t get_file_size(char *dir_n, char *file_n) {
 
 /* returns 1 if there is :END: ; 0 if opposite */
 int file_upload_description(session *sess, char *line, server_data_t *s_d) {
-  // for (;;) {
-  //   if (line != NULL && sess->file->description == NULL) { /* first query */
-  //     sess->file->description = malloc(strlen(line) + 1);
-  //     strcpy(sess->file->description, line);
-  //   } else { /* subsequent queries */
-  //     if (line == NULL) {
-  //       if (sess->buf_used > 0) {
-  //         query_extract_from_buf(sess, &line);
-  //       } else {
-  //         return 0;
-  //       }
-  //     }
-  //     sess->file->description =
-  //         realloc(sess->file->description, strlen(sess->file->description) + strlen(line) + 1);
-  //     strcat(sess->file->description, line);
-  //   }
-  //   char *desc_end = strstr(line, ":END:");
-  //   if (desc_end != NULL) {
-  //     return 1;
-  //   }
-  // }
-  char _msg[] = "This is a test \n Description!\n";
-  sess->file->description = malloc(sizeof(_msg) + 1);
-  strcpy(sess->file->description, _msg);
-  return 1;
+  for (;;) {
+    if (line != NULL && sess->file->description == NULL) { /* first query */
+      sess->file->description = malloc(strlen(line) + 1);
+      strcpy(sess->file->description, line);
+    } else { /* subsequent queries */
+      if (line == NULL) {
+        if (sess->buf_used > 0) {
+          query_extract_from_buf(sess, &line);
+        } else {
+          return 0;
+        }
+      }
+      sess->file->description =
+          realloc(sess->file->description,
+                  strlen(sess->file->description) + strlen(line) + 1);
+      strcat(sess->file->description, line);
+    }
+    char *desc_end = strstr(line, ":END:");
+    if (desc_end != NULL) {
+      sess->file->description[strlen(sess->file->description) - 6] = 0; // cut the :END:
+      return 1;
+    }
+    line = NULL;
+  }
 }
 
 // TODO: синхронизовать c C++

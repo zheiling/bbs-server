@@ -25,7 +25,7 @@ void process_client_command(char *line, session *sess, server_data_t *s_d) {
     /* UPLOAD */
     if (!strcmp(arg_2, "upload")) {
       res = file_receive_prepare(sess, line, s_d);
-      if (!res)
+      if (!res) 
         sess->state = OP_UPLOAD;
       return;
     }

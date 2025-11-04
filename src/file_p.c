@@ -1,4 +1,5 @@
 #include "file_p.h"
+#include "db.h"
 #include "libs/murmur3/murmur3.h"
 #include "main.h"
 #include "session.h"
@@ -7,6 +8,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,23 +25,69 @@
 char *extract_second_arg(char *);
 size_t get_file_size(char *, char *);
 
+void clear_list(fl_t *start) {
+  if (start) {
+    fl_t *curr = start;
+    fl_t *next;
+    do {
+      next = curr->next;
+      free(curr->description);
+      free(curr->name);
+      free(curr->owner);
+      free(curr);
+    } while ((curr = next) != NULL);
+  }
+}
+
 void file_list(session *sess, server_data_t *s_d) {
-  // TODO: change of format (rewrite in C++)
   char list_end[] = "list_end\n";
-  fl_t *current;
-  current = s_d->fl_start;
+  fl_t *fl_start, *fl_current;
   char item_h[256];
+  i_get_files_db args;
+  uint64_t page = 1;
+  uint64_t full_count, count, pages_count;
+
+  fl_start = NULL;
+  fl_current = NULL;
+
+  if (sess->fl_start) {
+    clear_list(fl_start);
+    sess->fl_start = NULL;
+    sess->fl_current = NULL;
+  }
+
+  args.limit = 15;
+  args.offset = 15 * (page - 1);
+  args.sort_by = ID;
+  args.sort_direction = ASC;
+
+  count = db_get_files_data(&args, &fl_start, &full_count);
+  char page_info[256];
+
+  pages_count = full_count / 15;
+  if (!pages_count)
+    pages_count = 1;
+
+  sprintf(page_info, "PAGE %lu FROM %lu. COUNT: %lu FROM %lu\n", page,
+          pages_count, count, full_count);
+
+  if (!fl_start)
+    return;
+
+  fl_current = fl_start;
+
   do {
     int n_len = strlen(sess->uname);
-    if (strncmp(current->owner, sess->uname, n_len) && !current->permissions) {
+    if (strncmp(fl_current->owner, sess->uname, n_len) &&
+        !fl_current->permissions) {
       continue;
     }
-    int h_len = sprintf(item_h, "%s %zu %s", current->name, current->size,
-                        current->owner);
-    int d_len = strlen(current->description);
+    int h_len = sprintf(item_h, "%s %zu %s", fl_current->name, fl_current->size,
+                        fl_current->owner);
+    int d_len = strlen(fl_current->description);
     int f_len = h_len + d_len + 2;
     char *full_str = malloc(sizeof(char) * f_len);
-    sprintf(full_str, "%s %s", item_h, current->description);
+    sprintf(full_str, "%s %s", item_h, fl_current->description);
     int i;
     for (i = h_len; i < h_len + d_len; i++) {
       if (full_str[i] == '\n') {
@@ -48,8 +96,12 @@ void file_list(session *sess, server_data_t *s_d) {
     }
     write(sess->sd, full_str, f_len - 1); // -1 : do not include \0
     free(full_str);
-  } while ((current = current->next) != NULL);
+    sess->fl_current = fl_current;
+  } while ((fl_current = fl_current->next) != NULL);
+
+  sess->fl_start = fl_start;
   write(sess->sd, list_end, sizeof(list_end));
+  write(sess->sd, page_info, strlen(page_info));
 }
 
 int file_send_prepare(session *sess, char *line, server_data_t *s_d) {
@@ -76,7 +128,6 @@ int file_send_prepare(session *sess, char *line, server_data_t *s_d) {
   fsize = lseek(file_d, 0, SEEK_END);
   lseek(file_d, 0, SEEK_SET);
 
-  sess->file->fd = file_d;
   sess->file->size = fsize;
   sess->file->rest = fsize;
   sess->file->name = malloc(strlen(fname));
@@ -113,6 +164,7 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
   sscanf(line, "file upload \"%s %zd %d", fname, &fsize, &perm);
   sess->file = malloc(sizeof(session_file));
   sess->file->name = malloc(sizeof(char) * strlen(fname));
+  sess->file->path = malloc(sizeof(STORAGE_FOLDER) + 2 + 9);
   sess->file->permissions = (char)perm;
   sess->file->description = NULL;
   strncpy(sess->file->name, fname, strlen(fname) - 1);
@@ -143,12 +195,11 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
   int file_d;
 
   for (;;) {
-    MurmurHash3_x86_32(sess->file->name, strlen(sess->file->name),
-                       seed, &sess->file->hash);
+    MurmurHash3_x86_32(sess->file->name, strlen(sess->file->name), seed,
+                       &sess->file->hash);
 
     extract_names_from_hash(sess->file->hash, hashed_dir_name, hashed_name);
 
-    sess->file->path = malloc(sizeof(STORAGE_FOLDER) + 2 + 9);
     sprintf(sess->file->path, "%s/%s/%s", STORAGE_FOLDER, hashed_dir_name,
             hashed_name);
 
@@ -163,8 +214,6 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
     if (file_d == -1) {
       if (errno == EEXIST) {
         seed++;
-        free(sess->file->path);
-        sess->file->path = NULL;
         continue;
       }
       mes_len = sprintf(mes, "Can't create file with such name: \"%s\"\n",
@@ -178,7 +227,7 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
   }
 
   mes_len = sprintf(mes, "accept");
-  sess->file->fd = file_d;
+  sess->fd = file_d;
   sess->file->size = fsize;
   sess->file->rest = fsize;
   write(sd, mes, mes_len);
@@ -199,16 +248,17 @@ void clear_file_from_sess(session *s) {
     free(sf->description);
     sf->description = NULL;
   }
-  if (sf->fd > -1) {
-    close(sf->fd);
+  if (s->fd > -1) {
+    close(s->fd);
+    s->fd = -1;
   }
   free(sf);
   s->file = NULL;
 }
 
-void file_download_upload(session *sess, enum f_actions f_action) {
-  int source_d = f_action == F_DOWNLOAD ? sess->file->fd : sess->sd;
-  int dest_d = f_action == F_DOWNLOAD ? sess->sd : sess->file->fd;
+void file_load(session *sess, enum f_actions f_action) {
+  int source_d = f_action == F_DOWNLOAD ? sess->fd : sess->sd;
+  int dest_d = f_action == F_DOWNLOAD ? sess->sd : sess->fd;
   char buf[INBUFSIZE];
   int rlen = read(source_d, buf, INBUFSIZE);
   if (rlen == 0) {
@@ -282,77 +332,10 @@ int file_upload_description(session *sess, char *line, server_data_t *s_d) {
     }
     char *desc_end = strstr(line, ":END:");
     if (desc_end != NULL) {
-      sess->file->description[strlen(sess->file->description) - 6] = 0; // cut the :END:
+      sess->file->description[strlen(sess->file->description) - 6] =
+          0; // cut the :END:
       return 1;
     }
     line = NULL;
   }
-}
-
-// TODO: синхронизовать c C++
-void get_files_descriptions(server_data_t *s_d) {
-  int fd = open(FILE_DESCRIPTIONS_NAME, O_RDONLY);
-  if (-1 == fd) {
-    perror(FILE_DESCRIPTIONS_NAME);
-    exit(8);
-  }
-  int rlen;
-
-  char buf[INBUFSIZE] = "";
-  chdir(STORAGE_FOLDER);
-
-  while ((rlen = read(fd, buf, FILEBUFSIZE)) > 0) {
-    char *buf_pos = buf;
-    char tmp[256];
-    while (buf_pos[0] != '\0') {
-      fl_t *fl_item = malloc(sizeof(fl_t));
-      fl_item->next = NULL;
-
-      /* file name */
-      sscanf(buf_pos, "%s\n", tmp);
-      buf_pos += strlen(tmp) + 1;
-      fl_item->name = malloc(sizeof(char) * (strlen(tmp) + 1));
-      strcpy(fl_item->name, tmp);
-
-      /* file owner */
-      sscanf(buf_pos, "%s\n", tmp);
-      buf_pos += strlen(tmp) + 1;
-      fl_item->owner = malloc(sizeof(char) * (strlen(tmp) + 1));
-      strcpy(fl_item->owner, tmp);
-
-      /* file permissions */
-      sscanf(buf_pos, "%s\n", tmp);
-      buf_pos += strlen(tmp) + 1;
-      fl_item->permissions = atoi(tmp);
-
-      /* file size */
-      int fd = open(fl_item->name, O_RDONLY);
-      if (-1 == fd) {
-        perror(fl_item->name);
-        free(fl_item->name);
-        free(fl_item->owner);
-        free(fl_item);
-        buf_pos += strstr(buf_pos, ":END:") + 6 - buf_pos;
-        continue;
-      }
-      fl_item->size = lseek(fd, 0, SEEK_END);
-      close(fd);
-
-      /* file description */
-      int d_len = strstr(buf_pos, ":END:\n") - buf_pos;
-      fl_item->description = malloc(d_len + 1);
-      strncpy(fl_item->description, buf_pos, d_len);
-      fl_item->description[d_len] = 0;
-      buf_pos += d_len + 6;
-      if (s_d->fl_start == NULL) {
-        s_d->fl_start = fl_item;
-        s_d->fl_current = fl_item;
-      } else {
-        s_d->fl_current->next = fl_item;
-        s_d->fl_current = fl_item;
-      }
-    }
-  }
-  close(fd);
-  chdir("..");
 }

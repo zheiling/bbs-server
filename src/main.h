@@ -49,8 +49,18 @@ typedef struct {
   size_t size;
   size_t rest;
   uint32_t hash;
-  int fd;
 } session_file;
+
+typedef struct fl_t {
+  char *name;
+  char *description;
+  char *owner;
+  char permissions;
+  uint32_t owner_id;
+  uint32_t hash;
+  size_t size;
+  struct fl_t *next;
+} fl_t;
 
 typedef struct session {
   unsigned long from_ip;
@@ -62,22 +72,14 @@ typedef struct session {
   char privileges;
   char *uname;
   uint32_t uid;
+  int fd;
   int sd; /* session descriptor */
   session_file *file;
-} session;
-
-typedef struct fl_t {
-  char *name;
-  char *description;
-  char *owner;
-  char permissions;
-  size_t size;
-  struct fl_t *next;
-} fl_t;
-
-typedef struct server_data_t {
   fl_t *fl_start;
   fl_t *fl_current;
+} session;
+
+typedef struct server_data_t {
   char *welcome_message;
   int ls;
 } server_data_t;

@@ -1,5 +1,6 @@
 #include "db.h"
 #include "main.h"
+#include <endian.h>
 #include <libpq-fe.h>
 #include <netinet/in.h>
 #include <stdint.h>
@@ -150,7 +151,7 @@ int db_save_file(session *s) {
 
   if (PQresultStatus(res) != PGRES_TUPLES_OK && !PQntuples(res))
     return exit_query_2(0);
-  
+
   int id = atoi(PQgetvalue(res, 0, 0));
   clearRes();
   return id;
@@ -161,39 +162,97 @@ int db_save_file(session *s) {
 
 // }
 
-int db_get_files(i_get_files_db *arg) {
-  const char *paramValues[3];
-  int paramLengths[3];
-  int paramFormats[3];
-  int i, j, nFields;
+uint64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
+                           uint64_t *full_count) {
+  fl_t *fl_current;
+  char query[512];
+  char sort_by[16] = "id";
+  char sort_dir[5] = "ASC";
+  const char *paramValues[2];
+  int paramLengths[2];
+  int paramFormats[2];
+  int i;
+  uint64_t count;
+  uint64_t n_limit = htobe64(arg->limit);
+  uint64_t n_offset = htobe64(arg->offset);
 
-  paramValues[0] = arg->sort_by;
-  paramValues[1] = (char *)&arg->limit;
-  paramValues[2] = (char *)&arg->offset;
+  switch (arg->sort_by) {
+  case NAME:
+    strcpy(sort_by, "name");
+    break;
+  case CREATED_AT:
+    strcpy(sort_by, "created_at");
+    break;
+  case USER_ID:
+    strcpy(sort_by, "user_id");
+    break;
+  case ID: // id is by default
+  default:
+    break;
+  }
 
-  paramLengths[0] = strlen(arg->sort_by);
-  paramLengths[1] = sizeof(arg->limit);
-  paramLengths[2] = sizeof(arg->offset);
+  if (arg->sort_direction == DESC) {
+    strcpy(sort_dir, "DESC");
+  }
 
-  paramFormats[0] = TEXT;
+  paramValues[0] = (char *)&n_limit;
+  paramValues[1] = (char *)&n_offset;
+
+  paramLengths[0] = sizeof(n_limit);
+  paramLengths[1] = sizeof(n_offset);
+
+  paramFormats[0] = BIN;
   paramFormats[1] = BIN;
-  paramFormats[2] = BIN;
 
-  res = PQexecParams(conn, "SELECT * FROM files ORDER BY $1 LIMIT $2 OFFSET $3",
-                     3, NULL, paramValues, paramLengths, paramFormats, TEXT);
+  sprintf(
+      query,
+      "SELECT user_id, name, size, description, permissions, hash, username "
+      "FROM files JOIN users ON user_id = users.id "
+      "ORDER BY files.%s %s LIMIT $1 OFFSET $2",
+      sort_by, sort_dir);
 
-  nFields = PQnfields(res);
-  for (i = 0; i < nFields; i++)
-    printf("%-15s", PQfname(res, i));
-  printf("\n\n");
+  res = PQexecParams(conn, query, 2, NULL, paramValues, paramLengths,
+                     paramFormats, TEXT);
+
+  if (PQresultStatus(res) != PGRES_TUPLES_OK && !PQntuples(res))
+    return exit_query_2(0);
 
   for (i = 0; i < PQntuples(res); i++) {
-    for (j = 0; j < nFields; j++)
-      printf("%-15s", PQgetvalue(res, i, j));
-    printf("\n");
+    fl_t *l_item = malloc(sizeof(fl_t));
+    l_item->next = NULL;
+    l_item->owner_id = atoi(PQgetvalue(res, i, 0));
+    char *name = PQgetvalue(res, i, 1);
+    l_item->name = malloc(strlen(name) + 1);
+    strcpy(l_item->name, name);
+    l_item->size = atoll(PQgetvalue(res, i, 2));
+    char *description = PQgetvalue(res, i, 3);
+    l_item->description = malloc(strlen(description) + 1);
+    strcpy(l_item->description, description);
+    l_item->permissions = atoi(PQgetvalue(res, i, 4));
+    l_item->hash = atoi(PQgetvalue(res, i, 5));
+    char *owner = PQgetvalue(res, i, 6);
+    l_item->owner = malloc(strlen(owner) + 1);
+    strcpy(l_item->owner, owner);
+
+    if (*fl_start == NULL) {
+      *fl_start = l_item;
+    } else {
+      fl_current->next = l_item;
+    }
+    fl_current = l_item;
   }
+
+  count = PQntuples(res);
 
   clearRes();
 
-  return 0;
+  res = PQexec(conn, "SELECT COUNT(id) "
+                     "FROM files "); // TODO: finish
+
+  if (PQresultStatus(res) != PGRES_TUPLES_OK && !PQntuples(res))
+    return exit_query_2(0);
+
+  *full_count = atoll(PQgetvalue(res, 0, 0));
+  clearRes();
+  return count;
 }

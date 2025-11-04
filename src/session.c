@@ -1,9 +1,9 @@
 #include "session.h"
 #include "client.h"
+#include "db.h"
 #include "file_p.h"
 #include "main.h"
 #include "user.h"
-#include "db.h"
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -42,7 +42,10 @@ session *make_new_session(int fd, struct sockaddr_in *from, char *wm) {
   sess->reason = NO_REASON;
   sess->uname = NULL;
   sess->sd = fd;
+  sess->fd = -1;
   sess->file = NULL;
+  sess->fl_start = NULL;
+  sess->fl_current = NULL;
   session_send_string(sess, wm);
   session_send_string(sess, "login> ");
   return sess;
@@ -112,10 +115,10 @@ int query_extract_from_buf(session *sess, char **output_line) {
       pos++;
     memmove(sess->buf, sess->buf + pos, sess->buf_used);
     sess->buf[sess->buf_used] = 0;
-    if (line[pos-2] == '\r') {
-      line[pos-2] = line[pos-1];
+    if (line[pos - 2] == '\r') {
+      line[pos - 2] = line[pos - 1];
       pos--;
-      line[pos-1] = 0;
+      line[pos - 1] = 0;
     }
     *output_line = line;
   }
@@ -124,7 +127,6 @@ int query_extract_from_buf(session *sess, char **output_line) {
 
 void perform_session_action(session *sess, char *line, server_data_t *s_d) {
   int state = sess->state;
-  int priv;
   int res;
   /* while (sess->buf_used) { */
   switch (state) {
@@ -138,10 +140,10 @@ void perform_session_action(session *sess, char *line, server_data_t *s_d) {
     process_client_command(line, sess, s_d);
     break;
   case OP_DOWNLOAD:
-    file_download_upload(sess, F_DOWNLOAD);
+    file_load(sess, F_DOWNLOAD);
     break;
   case OP_UPLOAD:
-    file_download_upload(sess, F_UPLOAD);
+    file_load(sess, F_UPLOAD);
     break;
   case OP_UPLOAD_DESCRIPTION:
     res = file_upload_description(sess, line, s_d);
@@ -161,10 +163,15 @@ void perform_session_action(session *sess, char *line, server_data_t *s_d) {
 
 void close_session(session *connections[], int sd) {
   if (connections[sd] != NULL) {
-    if (connections[sd]->file) clear_file_from_sess(connections[sd]);
+    if (connections[sd]->file != NULL)
+      clear_file_from_sess(connections[sd]);
     close(sd);
     connections[sd]->sd = -1;
     free(connections[sd]->uname);
+    if (connections[sd]->fl_start != NULL) {
+      fl_t *fl_start = connections[sd]->fl_start;
+      clear_list(fl_start);
+    }
     free(connections[sd]);
     connections[sd] = NULL;
   }

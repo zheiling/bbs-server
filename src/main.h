@@ -49,7 +49,9 @@ typedef struct {
   size_t size;
   size_t rest;
   uint32_t hash;
-} session_file;
+  uint32_t id;
+  uint32_t owner_id;
+} s_file_t;
 
 typedef struct fl_t {
   char *name;
@@ -59,6 +61,7 @@ typedef struct fl_t {
   uint32_t owner_id;
   uint32_t hash;
   size_t size;
+  uint32_t id;
   struct fl_t *next;
 } fl_t;
 
@@ -74,7 +77,7 @@ typedef struct session {
   uint32_t uid;
   int fd;
   int sd; /* session descriptor */
-  session_file *file;
+  s_file_t *file;
   fl_t *fl_start;
   fl_t *fl_current;
 } session;

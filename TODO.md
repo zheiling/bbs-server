@@ -2,12 +2,12 @@
 
 ## Features
 
-- [ ] Database integration
+- [x] Database integration
 - [ ] Paging in the file list
-- [ ] Get files in FS by their hash
+- [x] Get files in FS by their hash
 - [ ] Registration
 - [ ] Message to admin
-- [ ] Advanced folder structure for the storage
+- [x] Advanced folder structure in the storage
 - [ ] File encryption
 - [ ] Connection encryption
 

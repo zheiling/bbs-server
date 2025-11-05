@@ -18,9 +18,9 @@ typedef struct {
 /* Get file */
 
 typedef struct {
-  int id;
-  char *name;
-  int user_id;
+  uint32_t id;
+  uint32_t user_id;
+  char name[64];
 } i_get_file_db;
 
 enum sort_direction { ASC, DESC };
@@ -35,9 +35,10 @@ typedef struct {
   enum sort_direction sort_direction;
 } i_get_files_db;
 
-int init_db_connection();
-int db_user_auth(i_auth_t *credentials, o_auth_t *response);
-int db_save_file(session *s);
+int32_t init_db_connection();
+int32_t db_save_file(session *s);
+int32_t db_user_auth(i_auth_t *credentials, o_auth_t *response);
+s_file_t *db_get_file(i_get_file_db *arg);
 uint64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
                            uint64_t *full_count);
 #endif

@@ -54,6 +54,15 @@ static int exit_query_2(int code) {
   return code;
 }
 
+static void *exit_query_3(void *ptr) {
+  fprintf(stderr, "%s\n", PQerrorMessage(conn));
+
+  if (res != NULL)
+    PQclear(res);
+
+  return ptr;
+}
+
 static void processNotice(void *arg, const char *message) {
   UNUSED(arg);
   UNUSED(message);
@@ -104,20 +113,18 @@ int db_user_auth(i_auth_t *credentials, o_auth_t *response) {
   return exit_query(2);
 }
 
-int db_save_collision(uint32_t hash);
-
 #define BIN 1
 #define TEXT 0
 
-int db_save_file(session *s) {
+int32_t db_save_file(session *s) {
   const char *paramValues[6];
   int paramFormats[6];
   int paramLengths[6];
   int collision_id = 0;
-  session_file *sf = s->file;
+  s_file_t *sf = s->file;
 
   int32_t uid_n = htonl(s->uid);
-  int64_t size_n = htonl(sf->size);
+  uint64_t size_n = htobe64(sf->size);
   int32_t hash_n = htonl(sf->hash);
   int32_t perm_n = htonl(sf->permissions);
 
@@ -130,7 +137,7 @@ int db_save_file(session *s) {
 
   paramLengths[0] = sizeof(int32_t);
   paramLengths[1] = strlen(sf->name);
-  paramLengths[2] = sizeof(int64_t);
+  paramLengths[2] = sizeof(uint64_t);
   paramLengths[3] = sizeof(int32_t);
   paramLengths[4] = strlen(sf->description);
   paramLengths[5] = sizeof(int32_t);
@@ -158,9 +165,57 @@ int db_save_file(session *s) {
 }
 
 // TODO: get file
-// int db_get_file(i_get_file_db *arg) {
+s_file_t *db_get_file(i_get_file_db *arg) {
+  s_file_t *sf;
+  char s_field[24];
+  char value[64] = "";
+  const char *paramValues[1];
+  char query[512];
+  uint32_t q_len = 0;
 
-// }
+  if (arg->id) {
+    strcpy(s_field, "id");
+    sprintf(value, "%u", arg->id);
+  } else if (strlen(arg->name)) {
+    strcpy(s_field, "name");
+    strcpy(value, arg->name);
+  } else if (arg->user_id) {
+    strcpy(s_field, "user_id");
+    sprintf(value, "%u", arg->user_id);
+  } else {
+    fprintf(stderr, "db_get_file: none of the args is specified!\n");
+    return NULL;
+  }
+
+  paramValues[0] = value;
+
+  sprintf(query,
+          "SELECT files.id, user_id, name, size, description, permissions, hash "
+          "FROM files JOIN users ON user_id = users.id WHERE files.%s = $1%n",
+          s_field, &q_len);
+
+  res = PQexecParams(conn, query, 1, NULL, paramValues, NULL, NULL, TEXT);
+
+  if (PQresultStatus(res) != PGRES_TUPLES_OK && !PQntuples(res))
+    return exit_query_3(NULL);
+
+  sf = malloc(sizeof(s_file_t));
+  sf->id = atoi(PQgetvalue(res, 0, 0));
+  sf->owner_id = atoi(PQgetvalue(res, 0, 1));
+  char *name = PQgetvalue(res, 0, 2);
+  sf->name = malloc(strlen(name) + 1);
+  strcpy(sf->name, name);
+  sf->size = atoll(PQgetvalue(res, 0, 3));
+  char *description = PQgetvalue(res, 0, 4);
+  sf->description = malloc(strlen(description) + 1);
+  strcpy(sf->description, description);
+  sf->permissions = atoi(PQgetvalue(res, 0, 5));
+  sf->hash = atoi(PQgetvalue(res, 0, 6));
+
+  clearRes();
+
+  return sf;
+}
 
 uint64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
                            uint64_t *full_count) {
@@ -204,12 +259,12 @@ uint64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
   paramFormats[0] = BIN;
   paramFormats[1] = BIN;
 
-  sprintf(
-      query,
-      "SELECT user_id, name, size, description, permissions, hash, username "
-      "FROM files JOIN users ON user_id = users.id "
-      "ORDER BY files.%s %s LIMIT $1 OFFSET $2",
-      sort_by, sort_dir);
+  sprintf(query,
+          "SELECT files.id, user_id, name, size, description, permissions, "
+          "hash, username "
+          "FROM files JOIN users ON user_id = users.id "
+          "ORDER BY files.%s %s LIMIT $1 OFFSET $2",
+          sort_by, sort_dir);
 
   res = PQexecParams(conn, query, 2, NULL, paramValues, paramLengths,
                      paramFormats, TEXT);
@@ -220,17 +275,18 @@ uint64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
   for (i = 0; i < PQntuples(res); i++) {
     fl_t *l_item = malloc(sizeof(fl_t));
     l_item->next = NULL;
-    l_item->owner_id = atoi(PQgetvalue(res, i, 0));
-    char *name = PQgetvalue(res, i, 1);
+    l_item->id = atoi(PQgetvalue(res, i, 0));
+    l_item->owner_id = atoi(PQgetvalue(res, i, 1));
+    char *name = PQgetvalue(res, i, 2);
     l_item->name = malloc(strlen(name) + 1);
     strcpy(l_item->name, name);
-    l_item->size = atoll(PQgetvalue(res, i, 2));
-    char *description = PQgetvalue(res, i, 3);
+    l_item->size = atoll(PQgetvalue(res, i, 3));
+    char *description = PQgetvalue(res, i, 4);
     l_item->description = malloc(strlen(description) + 1);
     strcpy(l_item->description, description);
-    l_item->permissions = atoi(PQgetvalue(res, i, 4));
-    l_item->hash = atoi(PQgetvalue(res, i, 5));
-    char *owner = PQgetvalue(res, i, 6);
+    l_item->permissions = atoi(PQgetvalue(res, i, 5));
+    l_item->hash = atoi(PQgetvalue(res, i, 6));
+    char *owner = PQgetvalue(res, i, 7);
     l_item->owner = malloc(strlen(owner) + 1);
     strcpy(l_item->owner, owner);
 

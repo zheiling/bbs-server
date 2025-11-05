@@ -100,41 +100,8 @@ void file_list(session *sess, server_data_t *s_d) {
   } while ((fl_current = fl_current->next) != NULL);
 
   sess->fl_start = fl_start;
-  write(sess->sd, list_end, sizeof(list_end));
+  write(sess->sd, list_end, sizeof(list_end)-1);
   write(sess->sd, page_info, strlen(page_info));
-}
-
-int file_send_prepare(session *sess, char *line, server_data_t *s_d) {
-  sess->file = malloc(sizeof(session_file));
-  int sd = sess->sd;
-  char fname[50];
-  sscanf(line, "%*s %*s %s", fname);
-  char filepath[256];
-  sprintf(filepath, "%s/%s", STORAGE_FOLDER, fname);
-  char st_message[256];
-  size_t fsize;
-
-  int file_d = open(filepath, O_RDONLY);
-
-  if (file_d == -1) {
-    fprintf(stdout, "ERROR: %d\n", errno);
-    char err_mes[256];
-    int mlen;
-    mlen = sprintf(err_mes, "Can't open file named \"%s\"\n", fname);
-    write(sd, err_mes, mlen);
-    return -1;
-  }
-
-  fsize = lseek(file_d, 0, SEEK_END);
-  lseek(file_d, 0, SEEK_SET);
-
-  sess->file->size = fsize;
-  sess->file->rest = fsize;
-  sess->file->name = malloc(strlen(fname));
-  int fname_len = strlen(fname) - 1;
-  strncpy(sess->file->name, fname, fname_len);
-  sess->file->name[fname_len] = 0;
-  return 0;
 }
 
 int directory_exists(const char *path) {
@@ -156,13 +123,58 @@ void extract_names_from_hash(uint32_t file_hash, char *dirname, char *fname) {
   fname[6] = 0;
 }
 
+int32_t file_send_prepare(session *sess, char *line, server_data_t *s_d) {
+  int32_t sd = sess->sd;
+  i_get_file_db args = {.id = 0, .user_id = 0, .name = ""};
+  char st_message[256];
+  int32_t file_d;
+  size_t fsize;
+  char hashed_dir_name[3];
+  char hashed_name[7];
+  char err_mes[256];
+  uint32_t mlen;
+
+  sscanf(line, "%*s %*s %s", args.name);
+  sess->file = db_get_file(&args);
+
+  if (sess->file == NULL)
+    return -1;
+
+  extract_names_from_hash(sess->file->hash, hashed_dir_name, hashed_name);
+  sess->file->path = malloc(sizeof(STORAGE_FOLDER) + 2 + 9);
+  sprintf(sess->file->path, "%s/%s/%s", STORAGE_FOLDER, hashed_dir_name,
+          hashed_name);
+
+  file_d = open(sess->file->path, O_RDONLY);
+
+  if (file_d == -1) {
+    fprintf(stdout, "ERROR: %d\n", errno);
+    mlen = sprintf(err_mes, "Can't open file with id = %u\n", sess->file->id);
+    write(sd, err_mes, mlen);
+    return -2;
+  }
+
+  fsize = lseek(file_d, 0, SEEK_END);
+  lseek(file_d, 0, SEEK_SET);
+
+  if (sess->file->size != fsize) {
+    mlen = sprintf(err_mes, "File with id = %u exists, but seems to be damaged\n", sess->file->id);
+    write(sd, err_mes, mlen);
+    return -3;
+  }
+
+  sess->file->rest = fsize;
+  sess->fd = file_d;
+  return 0;
+}
+
 int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
   int sd = sess->sd;
   char fname[64];
   size_t fsize;
   int perm;
   sscanf(line, "file upload \"%s %zd %d", fname, &fsize, &perm);
-  sess->file = malloc(sizeof(session_file));
+  sess->file = malloc(sizeof(s_file_t));
   sess->file->name = malloc(sizeof(char) * strlen(fname));
   sess->file->path = malloc(sizeof(STORAGE_FOLDER) + 2 + 9);
   sess->file->permissions = (char)perm;
@@ -235,7 +247,7 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
 }
 
 void clear_file_from_sess(session *s) {
-  session_file *sf = s->file;
+  s_file_t *sf = s->file;
   if (sf->name != NULL) {
     free(sf->name);
     sf->name = NULL;

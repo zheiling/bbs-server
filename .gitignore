@@ -69,3 +69,5 @@ build
 
 #wdir contents
 wdir
+
+src/deps.mk

@@ -17,6 +17,7 @@ enum sess_states {
   OP_EDIT_FILE,
   OP_DOWNLOAD,
   OP_EDIT_USER,
+  OP_FILE_LIST,
   OP_LOGIN_USR,
   OP_LOGIN_PSS,
   OP_LOGIN_ANON,

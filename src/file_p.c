@@ -39,12 +39,21 @@ void clear_list(fl_t *start) {
   }
 }
 
-void file_list(session *sess, server_data_t *s_d) {
+uint32_t navigate_list(session *sess, char *line, server_data_t *s_d) {
+  uint64_t num;
+
+  if (sscanf(line, "p %lu", &num)) {
+    file_list(sess, s_d, num);
+    return  1;
+  }
+  return 0;
+}
+
+void file_list(session *sess, server_data_t *s_d, uint64_t page) {
   char list_end[] = "list_end\n";
   fl_t *fl_start, *fl_current;
   char item_h[256];
   i_get_files_db args;
-  uint64_t page = 1;
   uint64_t full_count, count, pages_count;
 
   fl_start = NULL;
@@ -67,9 +76,10 @@ void file_list(session *sess, server_data_t *s_d) {
   pages_count = full_count / 15;
   if (!pages_count)
     pages_count = 1;
+  if (pages_count % 15) pages_count ++;
 
-  sprintf(page_info, "PAGE %lu FROM %lu. COUNT: %lu FROM %lu\n", page,
-          pages_count, count, full_count);
+  sprintf(page_info, "=== PAGE %lu/%lu COUNT: %lu/%lu ===\n", page,
+          pages_count, count, full_count - (page-1)*15);
 
   if (!fl_start)
     return;

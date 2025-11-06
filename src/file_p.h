@@ -1,9 +1,9 @@
 #ifndef FILEP_H
 #define FILEP_H
 #include "main.h"
-void get_files_data(server_data_t *, uint32_t page);
 void clear_list(fl_t *start);
-void file_list(session *, server_data_t *);
+uint32_t navigate_list(session *sess, char *line, server_data_t *s_d) ;
+void file_list(session *, server_data_t *, uint64_t page);
 int file_send_prepare(session *, char *, server_data_t *);
 enum f_actions {
     F_UPLOAD,

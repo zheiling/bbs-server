@@ -157,6 +157,11 @@ void perform_session_action(session *sess, char *line, server_data_t *s_d) {
       }
     }
     break;
+  case OP_FILE_LIST:
+    if (!navigate_list(sess, line, s_d)) {
+      process_client_command(line, sess, s_d);
+    }
+    break;
   }
   /* } */
 }

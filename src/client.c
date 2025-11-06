@@ -18,7 +18,8 @@ void process_client_command(char *line, session *sess, server_data_t *s_d) {
   if (!strcmp(arg_1, "file")) {
     /* LIST */
     if (!strcmp(arg_2, "list")) {
-      file_list(sess, s_d);
+      file_list(sess, s_d, 1);
+      sess->state = OP_FILE_LIST;
       return;
     }
 

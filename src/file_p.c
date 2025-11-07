@@ -41,12 +41,18 @@ void clear_list(fl_t *start) {
 
 uint32_t navigate_list(session *sess, char *line, server_data_t *s_d) {
   uint64_t num;
+  char op_symbol;
 
-  if (sscanf(line, "p %lu", &num)) {
+  if (!sscanf(line, "%c %lu", &op_symbol, &num))
+    return 0;
+
+  switch (op_symbol) {
+  case 'p':
     file_list(sess, s_d, num);
-    return  1;
+    return 1;
+  default:
+    return 0;
   }
-  return 0;
 }
 
 void file_list(session *sess, server_data_t *s_d, uint64_t page) {
@@ -76,10 +82,11 @@ void file_list(session *sess, server_data_t *s_d, uint64_t page) {
   pages_count = full_count / 15;
   if (!pages_count)
     pages_count = 1;
-  if (pages_count % 15) pages_count ++;
+  if (pages_count % 15)
+    pages_count++;
 
-  sprintf(page_info, "=== PAGE %lu/%lu COUNT: %lu/%lu ===\n", page,
-          pages_count, count, full_count - (page-1)*15);
+  sprintf(page_info, "=== PAGE %lu/%lu COUNT: %lu/%lu ===\n", page, pages_count,
+          count, full_count - (page - 1) * 15);
 
   if (!fl_start)
     return;
@@ -110,7 +117,7 @@ void file_list(session *sess, server_data_t *s_d, uint64_t page) {
   } while ((fl_current = fl_current->next) != NULL);
 
   sess->fl_start = fl_start;
-  write(sess->sd, list_end, sizeof(list_end)-1);
+  write(sess->sd, list_end, sizeof(list_end) - 1);
   write(sess->sd, page_info, strlen(page_info));
 }
 
@@ -168,7 +175,9 @@ int32_t file_send_prepare(session *sess, char *line, server_data_t *s_d) {
   lseek(file_d, 0, SEEK_SET);
 
   if (sess->file->size != fsize) {
-    mlen = sprintf(err_mes, "File with id = %u exists, but seems to be damaged\n", sess->file->id);
+    mlen =
+        sprintf(err_mes, "File with id = %u exists, but seems to be damaged\n",
+                sess->file->id);
     write(sd, err_mes, mlen);
     return -3;
   }

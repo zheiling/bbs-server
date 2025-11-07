@@ -13,14 +13,15 @@ int process_user_name(char *uname, session *sess) {
     return 1;
   }
 
-  if (!strncmp(uname, "register", sizeof "register")) {
+  if (!strncmp(uname, "register", sizeof "register"-1)) {
     sess->state = OP_REGISTER;
-    session_send_string(sess, "Your username > ");
     return 2;
   }
 
-  if (!strncmp(uname, "anon", sizeof "anon")) {
-    sess->state = OP_LOGIN_ANON;
+  if (!strncmp(uname, "anonymous", sizeof "anonymous")) {
+    sess->uname = malloc(sizeof "anonymous");
+    strcpy(sess->uname, "anonymous");
+    sess->state = OP_WAIT;
     session_send_string(sess, "Welcome, Anonymous!");
     return 3;
   }

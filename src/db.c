@@ -10,6 +10,8 @@
 
 #define UNUSED(x) (void)(x)
 #define Q_LEN 128
+#define BIN 1
+#define TEXT 0
 
 static PGconn *conn = NULL;
 static PGresult *res = NULL;
@@ -91,7 +93,7 @@ int init_db_connection() {
   return exit_query(0);
 }
 
-int db_user_auth(i_auth_t *credentials, o_auth_t *response) {
+int32_t db_user_auth(i_auth_t *credentials, o_auth_t *response) {
   const char *paramValues[1];
   paramValues[0] = credentials->name;
 
@@ -108,13 +110,38 @@ int db_user_auth(i_auth_t *credentials, o_auth_t *response) {
   if (!strcmp(pass, credentials->pass)) {
     response->privileges = PQgetvalue(res, 0, 3)[0];
     response->uid = atoi(PQgetvalue(res, 0, 0));
+    clearRes();
+    char u_buf[128];
+    sprintf(u_buf, "UPDATE users SET last_login = NOW() WHERE id = %u",
+            response->uid);
+    res = PQexec(conn, u_buf);
+    if (PQresultStatus(res) != PGRES_TUPLES_OK && !PQntuples(res))
+      return exit_query(3);
     return exit_query(0);
   }
   return exit_query(2);
 }
 
-#define BIN 1
-#define TEXT 0
+int32_t db_user_create(i_db_user_create *args) {
+  const char *paramValues[3];
+  paramValues[0] = args->uname;
+  paramValues[1] = args->pass;
+  paramValues[2] = args->email;
+  uint32_t ret_value;
+
+  res = PQexecParams(
+      conn,
+      "INSERT INTO users (username, password, email, privileges, created_at, last_login)"
+      " VALUES ($1, $2, $3, 1, NOW(), NOW()) RETURNING id",
+      3, NULL, paramValues, NULL, NULL, TEXT);
+
+  if (PQresultStatus(res) != PGRES_TUPLES_OK && !PQntuples(res))
+    return exit_query(-1);
+
+  ret_value = atoi(PQgetvalue(res, 0, 0));
+  clearRes();
+  return ret_value;
+}
 
 int32_t db_save_file(session *s) {
   const char *paramValues[6];
@@ -189,10 +216,11 @@ s_file_t *db_get_file(i_get_file_db *arg) {
 
   paramValues[0] = value;
 
-  sprintf(query,
-          "SELECT files.id, user_id, name, size, description, permissions, hash "
-          "FROM files JOIN users ON user_id = users.id WHERE files.%s = $1%n",
-          s_field, &q_len);
+  sprintf(
+      query,
+      "SELECT files.id, user_id, name, size, description, permissions, hash "
+      "FROM files JOIN users ON user_id = users.id WHERE files.%s = $1%n",
+      s_field, &q_len);
 
   res = PQexecParams(conn, query, 1, NULL, paramValues, NULL, NULL, TEXT);
 
@@ -303,7 +331,7 @@ uint64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
   clearRes();
 
   res = PQexec(conn, "SELECT COUNT(id) "
-                     "FROM files "); // TODO: finish
+                     "FROM files ");
 
   if (PQresultStatus(res) != PGRES_TUPLES_OK && !PQntuples(res))
     return exit_query_2(0);

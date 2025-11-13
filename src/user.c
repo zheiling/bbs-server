@@ -1,24 +1,43 @@
+#include "db.h"
 #include "main.h"
 #include "session.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "db.h"
 
-int process_user_name(char *uname, session *sess) {
-  if (!strncmp(uname, "exit", sizeof "exit")) {
+int32_t create_user(session *sess, char *line) {
+  i_db_user_create p;
+  uint32_t privileges;
+  uint32_t res;
+  if (sscanf(line, "register %s %s %s", p.uname, p.pass, p.email) == 3) {
+    res = db_user_create(&p);
+    if (res) {
+      sess->state = OP_WAIT;
+      sess->uname = malloc(strlen(p.uname));
+      strcpy(sess->uname, p.uname);
+      sess->uid = res;
+      sess->privileges = 1; // by default
+      session_send_string(sess, "ok");
+    }
+    return res;
+  };
+  return 0;
+}
+
+uint32_t process_user_name(char *line, session *sess) {
+  if (!strncmp(line, "exit", sizeof "exit")) {
     sess->state = ERR;
     sess->reason = EXIT;
     session_send_string(sess, "Bye!");
     return 1;
   }
 
-  if (!strncmp(uname, "register", sizeof "register"-1)) {
-    sess->state = OP_REGISTER;
-    return 2;
+  if (!strncmp(line, "register", sizeof "register" - 1)) {
+    return create_user(sess, line);
   }
 
-  if (!strncmp(uname, "anonymous", sizeof "anonymous")) {
+  if (!strncmp(line, "anonymous", sizeof "anonymous")) {
     sess->uname = malloc(sizeof "anonymous");
     strcpy(sess->uname, "anonymous");
     sess->state = OP_WAIT;
@@ -26,8 +45,8 @@ int process_user_name(char *uname, session *sess) {
     return 3;
   }
 
-  sess->uname = malloc(strlen(uname) + 1);
-  strcpy(sess->uname, uname);
+  sess->uname = malloc(strlen(line) + 1);
+  strcpy(sess->uname, line);
   sess->state = OP_LOGIN_PSS;
   session_send_string(sess, "password> ");
 
@@ -57,7 +76,6 @@ int login(session *sess, char *pass) {
   }
 }
 
-// TODO: синхронизовать c C++
 /* returns 1 if session needs to be closed, 0 - in the opposite case */
 int process_error(session *sess) {
   if (sess->state == ERR) {

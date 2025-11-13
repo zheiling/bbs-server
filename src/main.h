@@ -2,6 +2,7 @@
 #define MAIN_H
 #include <stddef.h>
 #include <stdint.h>
+#include "types.h"
 #define PORT 2000
 #define MAX_CONNECTIONS 1024
 #define INBUFSIZE 1024
@@ -24,7 +25,6 @@ enum sess_states {
   OP_WAIT,
   OP_UPLOAD,
   OP_UPLOAD_DESCRIPTION,
-  OP_REGISTER,
   ERR,
   FIN
 };
@@ -70,14 +70,14 @@ typedef struct session {
   unsigned long from_ip;
   unsigned short from_port;
   char buf[INBUFSIZE];
-  int buf_used;
+  uint32_t buf_used;
   enum sess_states state;
   enum error_reason reason;
   char privileges;
   char *uname;
   uint32_t uid;
-  int fd;
-  int sd; /* session descriptor */
+  int32_t fd;
+  int32_t sd; /* session descriptor */
   s_file_t *file;
   fl_t *fl_start;
   fl_t *fl_current;

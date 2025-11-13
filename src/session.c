@@ -17,7 +17,7 @@
 
 session *make_new_session(int fd, struct sockaddr_in *from, char *wm);
 
-int accept_client(int ls, session *connections[], char *wm) {
+int32_t accept_client(int ls, session *connections[], char *wm) {
   int sd;
   struct sockaddr_in addr;
   socklen_t len = sizeof(addr);
@@ -83,7 +83,6 @@ int session_do_read(session *sess, char **read_str) {
   return 1;
 }
 
-// TODO: синхронизовать c C++
 int query_extract_from_buf(session *sess, char **output_line) {
   char *line;
   int pos = -1;
@@ -161,9 +160,6 @@ void perform_session_action(session *sess, char *line, server_data_t *s_d) {
     if (!navigate_list(sess, line, s_d)) {
       process_client_command(line, sess, s_d);
     }
-    break;
-  case OP_REGISTER:
-    // TODO: 
     break;
   }
   /* } */

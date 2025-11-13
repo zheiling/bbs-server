@@ -7,7 +7,6 @@
 #include <string.h>
 #include <unistd.h>
 
-// TODO: синхронизовать c C++
 void process_client_command(char *line, session *sess, server_data_t *s_d) {
   char arg_1[32];
   char arg_2[32];

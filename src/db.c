@@ -1,17 +1,21 @@
 #include "db.h"
 #include "main.h"
 #include <endian.h>
+#include <fcntl.h>
 #include <libpq-fe.h>
 #include <netinet/in.h>
+#include <openssl/sha.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #define UNUSED(x) (void)(x)
 #define Q_LEN 128
 #define BIN 1
 #define TEXT 0
+#define ENCR_SIZE 2048
 
 static PGconn *conn = NULL;
 static PGresult *res = NULL;
@@ -93,9 +97,24 @@ int init_db_connection() {
   return exit_query(0);
 }
 
-int32_t db_user_auth(i_auth_t *credentials, o_auth_t *response) {
+void SHA256_raw_to_string(const unsigned char *passHashed, char *restrict out) {
+  int i;
+  for (i = 0; i < 4; i++) {
+    uint64_t *num_pointer = (uint64_t *)(passHashed + i * 8);
+    sprintf(out + 16 * i, "%016lx", htobe64(*num_pointer));
+  }
+}
+
+void string_to_SHA256(const char *str, char *restrict out) {
+  unsigned char md[SHA256_DIGEST_LENGTH];
+  unsigned char *passHashed = SHA256((unsigned char *)str, strlen(str), md);
+  SHA256_raw_to_string(passHashed, out);
+}
+
+int32_t db_user_auth(i_auth_t *c, o_auth_t *r) {
   const char *paramValues[1];
-  paramValues[0] = credentials->name;
+  paramValues[0] = c->name;
+  char passHashed[SHA256_DIGEST_LENGTH * 2];
 
   res = PQexecParams(conn,
                      "SELECT id, username, password, privileges "
@@ -107,13 +126,13 @@ int32_t db_user_auth(i_auth_t *credentials, o_auth_t *response) {
     return exit_query(1);
 
   const char *pass = PQgetvalue(res, 0, 2);
-  if (!strcmp(pass, credentials->pass)) {
-    response->privileges = PQgetvalue(res, 0, 3)[0];
-    response->uid = atoi(PQgetvalue(res, 0, 0));
+  string_to_SHA256( c->pass, passHashed);
+  if (!strcmp(passHashed, pass)) {
+    r->privileges = PQgetvalue(res, 0, 3)[0];
+    r->uid = atoi(PQgetvalue(res, 0, 0));
     clearRes();
     char u_buf[128];
-    sprintf(u_buf, "UPDATE users SET last_login = NOW() WHERE id = %u",
-            response->uid);
+    sprintf(u_buf, "UPDATE users SET last_login = NOW() WHERE id = %u", r->uid);
     res = PQexec(conn, u_buf);
     if (PQresultStatus(res) != PGRES_TUPLES_OK && !PQntuples(res))
       return exit_query(3);
@@ -124,16 +143,19 @@ int32_t db_user_auth(i_auth_t *credentials, o_auth_t *response) {
 
 int32_t db_user_create(i_db_user_create *args) {
   const char *paramValues[3];
+  char passHashed[SHA256_DIGEST_LENGTH * 2];
   paramValues[0] = args->uname;
-  paramValues[1] = args->pass;
   paramValues[2] = args->email;
   uint32_t ret_value;
 
-  res = PQexecParams(
-      conn,
-      "INSERT INTO users (username, password, email, privileges, created_at, last_login)"
-      " VALUES ($1, $2, $3, 1, NOW(), NOW()) RETURNING id",
-      3, NULL, paramValues, NULL, NULL, TEXT);
+  string_to_SHA256(args->pass, passHashed);
+  paramValues[1] = passHashed;
+
+  res = PQexecParams(conn,
+                     "INSERT INTO users (username, password, email, "
+                     "privileges, created_at, last_login)"
+                     " VALUES ($1, $2, $3, 1, NOW(), NOW()) RETURNING id",
+                     3, NULL, paramValues, NULL, NULL, TEXT);
 
   if (PQresultStatus(res) != PGRES_TUPLES_OK && !PQntuples(res))
     return exit_query(-1);

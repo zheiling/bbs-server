@@ -85,7 +85,7 @@ int process_error(session *sess) {
       return 1;
       break;
     case LOGIN:
-      session_send_string(sess, "Can't find the user with such credentials\n");
+      session_send_string(sess, "Can't find the user with such credentials\04\n");
       sess->state = OP_LOGIN_USR;
       sess->reason = NO_REASON;
       session_send_string(sess, "login_again> ");

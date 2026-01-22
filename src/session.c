@@ -127,6 +127,8 @@ int query_extract_from_buf(session *sess, char **output_line) {
 void perform_session_action(session *sess, char *line, server_data_t *s_d) {
   int state = sess->state;
   int res;
+  char response[INBUFSIZE];
+  uint32_t response_len = 0;
   /* while (sess->buf_used) { */
   switch (state) {
   case OP_LOGIN_USR:
@@ -148,8 +150,9 @@ void perform_session_action(session *sess, char *line, server_data_t *s_d) {
     res = file_upload_description(sess, line, s_d);
     if (res) {
       if (db_save_file(sess)) {
+        response_len = sprintf(response, "File \"%s\" is saved!\04\n", sess->file->name);
+        write(sess->sd, response, response_len+1);
         clear_file_from_sess(sess);
-        session_send_string(sess, "File is saved!\n");
         sess->state = OP_WAIT;
       } else {
         // TODO: error case

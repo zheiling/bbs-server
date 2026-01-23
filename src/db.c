@@ -127,6 +127,9 @@ int32_t db_user_auth(i_auth_t *c, o_auth_t *r) {
 
   const char *pass = PQgetvalue(res, 0, 2);
   string_to_SHA256( c->pass, passHashed);
+  if (pass == NULL) {
+    /* TODO: return */
+  }
   if (!strcmp(passHashed, pass)) {
     r->privileges = PQgetvalue(res, 0, 3)[0];
     r->uid = atoi(PQgetvalue(res, 0, 0));

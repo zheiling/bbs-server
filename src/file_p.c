@@ -40,7 +40,6 @@ void clear_list(fl_t *start) {
 }
 
 void file_list(session *sess, server_data_t *s_d, uint32_t limit, uint32_t page) {
-  char list_end[] = "list_end\n";
   fl_t *fl_start, *fl_current;
   char item_h[256];
   i_get_files_db args;
@@ -69,7 +68,7 @@ void file_list(session *sess, server_data_t *s_d, uint32_t limit, uint32_t page)
   if (pages_count % limit)
     pages_count++;
 
-  sprintf(page_info, "=== PAGE %u/%lu COUNT: %lu/%lu ===\n", page, pages_count,
+  sprintf(page_info, ":END: PAGE %u/%lu COUNT: %lu/%lu\n", page, pages_count,
           count, full_count - (page - 1) * limit);
 
   if (!fl_start)
@@ -101,7 +100,6 @@ void file_list(session *sess, server_data_t *s_d, uint32_t limit, uint32_t page)
   } while ((fl_current = fl_current->next) != NULL);
 
   sess->fl_start = fl_start;
-  write(sess->sd, list_end, sizeof(list_end) - 1);
   write(sess->sd, page_info, strlen(page_info));
 }
 

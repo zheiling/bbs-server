@@ -14,6 +14,10 @@
 #define FILE_USER_LIST_NAME "userlist"
 #define WELCOME_FILE_NAME "welcome"
 
+#ifndef __USE_MISC
+#define __USE_MISC
+#endif
+
 enum sess_states {
   OP_EDIT_FILE,
   OP_DOWNLOAD,

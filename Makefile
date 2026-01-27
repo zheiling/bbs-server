@@ -1,4 +1,4 @@
-CFLAGS  := -ggdb -Wall -pedantic -lpq -lcrypto
+CFLAGS  := -ggdb -Wextra -pedantic -std=c23 -lpq -lcrypto
 
 SRC_DIR := src
 OBJ_DIR := src/obj

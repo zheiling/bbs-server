@@ -1,6 +1,6 @@
 #include "file_p.h"
 #include "db.h"
-#include "libs/murmur3/murmur3.h"
+#include <murmur3.h>
 #include "main.h"
 #include "session.h"
 #include <arpa/inet.h>

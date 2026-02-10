@@ -1,0 +1,25 @@
+{
+  "version": 4,
+  "configurePresets": [
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "description": "Debug build",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "ZBBS_DEBUG": "ON",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "description": "Release build",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "ZBBS_DEBUG": "OFF",
+        "CMAKE_BUILD_TYPE":"Release"
+      }
+    }
+  ]
+}

@@ -5,6 +5,7 @@
 #include <libpq-fe.h>
 #include <netinet/in.h>
 #include <openssl/sha.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -126,7 +127,7 @@ int32_t db_user_auth(i_auth_t *c, o_auth_t *r) {
     return exit_query(1);
 
   const char *pass = PQgetvalue(res, 0, 2);
-  string_to_SHA256( c->pass, passHashed);
+  string_to_SHA256(c->pass, passHashed);
   if (pass == NULL) {
     /* TODO: return */
   }
@@ -276,13 +277,15 @@ uint64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
   char query[512];
   char sort_by[16] = "id";
   char sort_dir[5] = "ASC";
-  const char *paramValues[2];
-  int paramLengths[2];
-  int paramFormats[2];
+  const char *paramValues[3];
+  int paramLengths[3];
+  int paramFormats[3];
   int i;
   uint64_t count;
   uint64_t n_limit = htobe64(arg->limit);
   uint64_t n_offset = htobe64(arg->offset);
+  bool by_name = strlen(arg->name) > 0;
+  uint32_t params_num = 3;
 
   switch (arg->sort_by) {
   case NAME:
@@ -305,21 +308,35 @@ uint64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
 
   paramValues[0] = (char *)&n_limit;
   paramValues[1] = (char *)&n_offset;
+  paramValues[2] = arg->name;
 
   paramLengths[0] = sizeof(n_limit);
   paramLengths[1] = sizeof(n_offset);
+  paramLengths[2] = strlen(arg->name);
 
   paramFormats[0] = BIN;
   paramFormats[1] = BIN;
+  paramFormats[2] = TEXT;
 
-  sprintf(query,
-          "SELECT files.id, user_id, name, size, description, permissions, "
-          "hash, username "
-          "FROM files JOIN users ON user_id = users.id "
-          "ORDER BY files.%s %s LIMIT $1 OFFSET $2",
-          sort_by, sort_dir);
+  if (!by_name) {
+    params_num = 2;
+    sprintf(query,
+            "SELECT files.id, user_id, name, size, description, permissions, "
+            "hash, username "
+            "FROM files JOIN users ON user_id = users.id "
+            "ORDER BY files.%s %s LIMIT $1 OFFSET $2",
+            sort_by, sort_dir);
+  } else {
+    sprintf(query,
+            "SELECT files.id, user_id, name, size, description, permissions, "
+            "hash, username "
+            "FROM files JOIN users ON user_id = users.id "
+            "WHERE name ILIKE '%%' || $3 || '%%'"
+            "ORDER BY files.%s %s LIMIT $1 OFFSET $2",
+            sort_by, sort_dir);
+  }
 
-  res = PQexecParams(conn, query, 2, NULL, paramValues, paramLengths,
+  res = PQexecParams(conn, query, params_num, NULL, paramValues, paramLengths,
                      paramFormats, TEXT);
 
   if (PQresultStatus(res) != PGRES_TUPLES_OK && !PQntuples(res))
@@ -355,8 +372,17 @@ uint64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
 
   clearRes();
 
-  res = PQexec(conn, "SELECT COUNT(id) "
-                     "FROM files ");
+  if (by_name) {
+    res = PQexecParams(conn,
+                       "SELECT COUNT(id) "
+                       "FROM files "
+                       "WHERE name ILIKE '%%' || $1 || '%%'",
+                       1, NULL, paramValues + 2, paramLengths + 2,
+                       paramFormats + 2, TEXT);
+  } else {
+    res = PQexec(conn, "SELECT COUNT(id) "
+                       "FROM files ");
+  }
 
   if (PQresultStatus(res) != PGRES_TUPLES_OK && !PQntuples(res))
     return exit_query_2(0);

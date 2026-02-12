@@ -12,15 +12,16 @@ void process_client_command(char *line, session *sess, server_data_t *s_d) {
   char arg_1[32];
   char arg_2[32];
   uint32_t res;
-  uint32_t limit, page;
+  i_file_list_t fl_args;
+  fl_args.name = NULL;
 
   sscanf(line, "%s %s", arg_1, arg_2);
 
   if (!strcmp(arg_1, "file")) {
     /* LIST */
     if (!strcmp(arg_2, "list")) {
-      sscanf(line, "%*s %*s %u %u", &limit, &page);
-      file_list(sess, s_d, limit, page);
+      sscanf(line, "%*s %*s %u %u", &(fl_args.limit), &(fl_args.page));
+      file_list(sess, s_d, &fl_args);
       return;
     }
 
@@ -38,6 +39,20 @@ void process_client_command(char *line, session *sess, server_data_t *s_d) {
       if (!res)
         sess->state = OP_DOWNLOAD;
       return;
+    }
+
+    /* SEARCH */
+    if (!strcmp(arg_2, "search")) {
+      char *s_type = arg_1; /* since we don't need the contents of arg_1 and arg_2 variables */
+      char *s_val = arg_2;
+      sscanf(line, "%*s %*s %s %s %u %u", s_type, s_val, &(fl_args.limit), &(fl_args.page));
+      
+      /* by name */
+      if (!strcmp(s_type, "name")) {
+        fl_args.name = s_val;
+      }
+
+      file_list(sess, s_d, &fl_args);
     }
   }
 

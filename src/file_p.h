@@ -1,8 +1,14 @@
 #ifndef FILEP_H
 #define FILEP_H
 #include "main.h"
+#include <stdint.h>
 void clear_list(fl_t *start);
-void file_list(session *, server_data_t *, uint32_t limit, uint32_t page);
+typedef struct {
+    uint32_t page;
+    uint32_t limit;
+    char *name;
+} i_file_list_t;
+void file_list(session *, server_data_t *, i_file_list_t *l_args);
 int file_send_prepare(session *, char *, server_data_t *);
 enum f_actions {
     F_UPLOAD,

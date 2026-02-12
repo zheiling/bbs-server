@@ -2,6 +2,8 @@ add_executable(zbbs-server)
 
 set_property(TARGET zbbs-server PROPERTY C_STANDARD 23)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 find_package(PostgreSQL REQUIRED)
 if(NOT PostgreSQL_FOUND)
     message(FATAL_ERROR "PostgreSQL not found. Please install libpq-dev or set PostgreSQL_ROOT.")

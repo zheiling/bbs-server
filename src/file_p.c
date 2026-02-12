@@ -1,11 +1,11 @@
 #include "file_p.h"
 #include "db.h"
-#include <murmur3.h>
 #include "main.h"
 #include "session.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <murmur3.h>
 #include <netinet/in.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -39,7 +39,7 @@ void clear_list(fl_t *start) {
   }
 }
 
-void file_list(session *sess, server_data_t *s_d, uint32_t limit, uint32_t page) {
+void file_list(session *sess, server_data_t *s_d, i_file_list_t *f_args) {
   fl_t *fl_start, *fl_current;
   char item_h[256];
   i_get_files_db args;
@@ -54,25 +54,32 @@ void file_list(session *sess, server_data_t *s_d, uint32_t limit, uint32_t page)
     sess->fl_current = NULL;
   }
 
-  args.limit = limit;
-  args.offset = limit * (page - 1);
+  args.limit = f_args->limit;
+  args.offset = f_args->limit * (f_args->page - 1);
   args.sort_by = ID;
   args.sort_direction = ASC;
+  if (f_args->name != NULL) {
+    strcpy(args.name, f_args->name);
+  } else {
+    args.name[0] = '\0';
+  }
 
   count = db_get_files_data(&args, &fl_start, &full_count);
   char page_info[256];
 
-  pages_count = full_count / limit;
+  pages_count = full_count / f_args->limit;
   if (!pages_count)
     pages_count = 1;
-  if (pages_count % limit)
+  if (pages_count % f_args->limit)
     pages_count++;
 
-  sprintf(page_info, ":END: PAGE %u/%lu COUNT: %lu/%lu\n", page, pages_count,
-          count, full_count - (page - 1) * limit);
+  sprintf(page_info, ":END: PAGE %u/%lu COUNT: %lu/%lu\n", f_args->page,
+          pages_count, count, full_count - (f_args->page - 1) * f_args->limit);
 
-  if (!fl_start)
+  if (!fl_start) {
+    write(sess->sd, page_info, strlen(page_info));
     return;
+  }
 
   fl_current = fl_start;
 

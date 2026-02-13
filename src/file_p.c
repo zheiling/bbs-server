@@ -70,7 +70,7 @@ void file_list(session *sess, server_data_t *s_d, i_file_list_t *f_args) {
   pages_count = full_count / f_args->limit;
   if (!pages_count)
     pages_count = 1;
-  if (pages_count > 1 && (pages_count % f_args->limit))
+  if ((full_count > f_args->limit) && (pages_count % f_args->limit))
     pages_count++;
 
   sprintf(page_info, ":END: PAGE %u/%lu COUNT: %lu/%lu\n", f_args->page,

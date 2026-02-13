@@ -70,7 +70,7 @@ void file_list(session *sess, server_data_t *s_d, i_file_list_t *f_args) {
   pages_count = full_count / f_args->limit;
   if (!pages_count)
     pages_count = 1;
-  if (pages_count % f_args->limit)
+  if (pages_count > 1 && (pages_count % f_args->limit))
     pages_count++;
 
   sprintf(page_info, ":END: PAGE %u/%lu COUNT: %lu/%lu\n", f_args->page,
@@ -132,7 +132,6 @@ void extract_names_from_hash(uint32_t file_hash, char *dirname, char *fname) {
 int32_t file_send_prepare(session *sess, char *line, server_data_t *s_d) {
   int32_t sd = sess->sd;
   i_get_file_db args = {.id = 0, .user_id = 0, .name = ""};
-  char st_message[256];
   int32_t file_d;
   size_t fsize;
   char hashed_dir_name[3];

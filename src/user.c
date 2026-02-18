@@ -10,7 +10,7 @@ int32_t create_user(session *sess, char *line) {
   i_db_user_create p;
   uint32_t privileges;
   uint32_t res;
-  if (sscanf(line, "register %s %s %s", p.uname, p.pass, p.email) == 3) {
+  if (sscanf(line, "register %s %s", p.uname, p.pass) == 2) {
     res = db_user_create(&p);
     if (res) {
       sess->state = OP_WAIT;

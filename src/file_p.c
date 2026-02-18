@@ -117,7 +117,7 @@ int directory_exists(const char *path) {
     // stat() failed, probably doesn't exist
     return 0;
   }
-  return S_ISDIR(info.st_mode); // true if it's a directory
+  return S_ISDIR(info.st_mode); // true if it is a directory
 }
 
 void extract_names_from_hash(uint32_t file_hash, char *dirname, char *fname) {

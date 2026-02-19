@@ -147,22 +147,51 @@ int32_t db_user_auth(i_auth_t *c, o_auth_t *r) {
 
 int32_t db_user_create(i_db_user_create *args) {
   const char *paramValues[3];
+  int32_t paramLengths[3];
   char passHashed[SHA256_DIGEST_LENGTH * 2];
   paramValues[0] = args->uname;
   paramValues[2] = args->email;
+
+  paramLengths[0] = strlen(args->uname);
+  paramLengths[2] = strlen(args->email);
   uint32_t ret_value;
 
   string_to_SHA256(args->pass, passHashed);
   paramValues[1] = passHashed;
+  paramLengths[1] = 64;
+
+  /* Check username */
+  res = PQexecParams(conn, "SELECT id FROM users WHERE username=$1", 1, NULL,
+                     paramValues, paramLengths, NULL, TEXT);
+
+  if (PQresultStatus(res) != PGRES_TUPLES_OK && !PQntuples(res))
+    return exit_query_2(-1);
+
+  if (PQntuples(res) > 0) {
+    return exit_query_2(-2);
+  }
+
+  /* Check email */
+  res = PQexecParams(conn, "SELECT id FROM users WHERE email=$1", 1, NULL,
+                     paramValues+2, paramLengths+2, NULL, TEXT);
+
+  if (PQresultStatus(res) != PGRES_TUPLES_OK && !PQntuples(res))
+    return exit_query_2(-1);
+
+  if (PQntuples(res) > 0) {
+    return exit_query_2(-3);
+  }
+
+  clearRes();
 
   res = PQexecParams(conn,
                      "INSERT INTO users (username, password, email, "
                      "privileges, created_at, last_login)"
                      " VALUES ($1, $2, $3, 1, NOW(), NOW()) RETURNING id",
-                     3, NULL, paramValues, NULL, NULL, TEXT);
+                     3, NULL, paramValues, paramLengths, NULL, TEXT);
 
   if (PQresultStatus(res) != PGRES_TUPLES_OK && !PQntuples(res))
-    return exit_query(-1);
+    return exit_query(-4);
 
   ret_value = atoi(PQgetvalue(res, 0, 0));
   clearRes();

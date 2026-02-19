@@ -9,16 +9,23 @@
 int32_t create_user(session *sess, char *line) {
   i_db_user_create p;
   uint32_t privileges;
-  uint32_t res;
+  int32_t res;
   if (sscanf(line, "register %s %s", p.uname, p.pass) == 2) {
+    sprintf(p.email, "%s@mail.net", p.uname); /* TODO: return back email */
     res = db_user_create(&p);
-    if (res) {
+    if (res > 0) {
       sess->state = OP_WAIT;
       sess->uname = malloc(strlen(p.uname));
       strcpy(sess->uname, p.uname);
       sess->uid = res;
-      sess->privileges = 1; // by default
-      session_send_string(sess, "ok");
+      sess->privileges = 1; /* by default */
+      session_send_string(sess, "ok\n");
+    } else if (res == -2) {
+      session_send_string(sess, "User with such name already exists\n");
+    } else if (res == -3) {
+      session_send_string(sess, "User with such email already exists\n");
+    } else {
+      session_send_string(sess, "Error creating the user\n");
     }
     return res;
   };
@@ -85,7 +92,8 @@ int process_error(session *sess) {
       return 1;
       break;
     case LOGIN:
-      session_send_string(sess, "Can't find the user with such credentials\04\n");
+      session_send_string(sess,
+                          "Can't find the user with such credentials\04\n");
       sess->state = OP_LOGIN_USR;
       sess->reason = NO_REASON;
       session_send_string(sess, "login_again> ");

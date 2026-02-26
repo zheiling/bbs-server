@@ -10,8 +10,7 @@ int32_t create_user(session *sess, char *line) {
   i_db_user_create p;
   uint32_t privileges;
   int32_t res;
-  if (sscanf(line, "register %s %s", p.uname, p.pass) == 2) {
-    sprintf(p.email, "%s@mail.net", p.uname); /* TODO: return back email */
+  if (sscanf(line, "register %s %s %s", p.uname, p.pass, p.email) == 3) {
     res = db_user_create(&p);
     if (res > 0) {
       sess->state = OP_WAIT;

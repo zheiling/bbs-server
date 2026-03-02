@@ -2,29 +2,11 @@ add_executable(zbbs-server)
 
 set_property(TARGET zbbs-server PROPERTY C_STANDARD 23)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-find_package(PostgreSQL REQUIRED)
-if(NOT PostgreSQL_FOUND)
-    message(FATAL_ERROR "PostgreSQL not found. Please install libpq-dev or set PostgreSQL_ROOT.")
-endif()
-
-find_package(OpenSSL REQUIRED)
-if(NOT OpenSSL_FOUND)
-    message(FATAL_ERROR "OpenSSL not found. Please install libcrypto or set OpenSSL_ROOT.")
-endif()
-
-file(GLOB M_HEADERS "*.h")
 file(GLOB M_SOURCES "*.c")
 
 target_sources(zbbs-server
     PRIVATE
         ${M_SOURCES}
-    PUBLIC
-        FILE_SET HEADERS
-        FILES
-            ${M_HEADERS}
-            "types.h"
 )
 
 add_subdirectory(libs)

@@ -73,7 +73,7 @@ void server_main_loop(server_data_t *s_d) {
         if (line != NULL && res) {
           perform_session_action(sess, line, s_d);
           free(line);
-          if (process_error(sess)) {
+          if (sess->state == ERR) {
             close_session(connections, i);
           }
         }

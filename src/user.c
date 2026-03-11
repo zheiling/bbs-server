@@ -76,29 +76,9 @@ int login(session *sess, char *pass) {
     session_send_string(sess, tmp_string);
     return 0;
   } else {
-    sess->state = ERR;
-    sess->reason = EXIT;
+    sprintf(tmp_string, "login_again>\n");
+    session_send_string(sess, tmp_string);
+    sess->state = OP_LOGIN_USR;
     return 1;
   }
-}
-
-/* returns 1 if session needs to be closed, 0 - in the opposite case */
-int process_error(session *sess) {
-  if (sess->state == ERR) {
-    switch (sess->reason) {
-    case NO_REASON:
-    case EXIT:
-      return 1;
-      break;
-    case LOGIN:
-      session_send_string(sess,
-                          "Can't find the user with such credentials\04\n");
-      sess->state = OP_LOGIN_USR;
-      sess->reason = NO_REASON;
-      session_send_string(sess, "login_again> ");
-      break;
-    }
-  }
-
-  return 0;
 }

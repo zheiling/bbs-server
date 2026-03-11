@@ -41,7 +41,6 @@ enum user_privileges {
 
 enum error_reason {
   NO_REASON,
-  LOGIN,
   EXIT,
 };
 

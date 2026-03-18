@@ -3,7 +3,6 @@
 
 #include "main.h"
 #include "session.h"
-#include "user.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -88,7 +87,7 @@ void server_main_loop(server_data_t *s_d) {
   }
 }
 
-char *get_welcome_mes() {
+char *get_welcome_mes(void) {
   int fd = open(WELCOME_FILE_NAME, O_RDONLY);
   if (fd == -1) {
     perror(WELCOME_FILE_NAME);

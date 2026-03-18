@@ -205,8 +205,9 @@ int32_t db_save_file(session *s) {
   const char *paramValues[6];
   int paramFormats[6];
   int paramLengths[6];
-  int collision_id = 0;
+  /* int collision_id = 0; */
   s_file_t *sf = s->file;
+  char empty_str[] = "";
 
   int32_t uid_n = htonl(s->uid);
   uint64_t size_n = htobe64(sf->size);
@@ -217,16 +218,24 @@ int32_t db_save_file(session *s) {
   paramValues[1] = sf->name;
   paramValues[2] = (char *)&size_n;
   paramValues[3] = (char *)&hash_n;
-  paramValues[4] = sf->description;
+    if (sf->description != NULL) {
+    paramValues[4] = sf->description;
+  } else {
+    paramValues[4] = empty_str;
+  }
   paramValues[5] = (char *)&perm_n;
 
   paramLengths[0] = sizeof(int32_t);
   paramLengths[1] = strlen(sf->name);
   paramLengths[2] = sizeof(uint64_t);
   paramLengths[3] = sizeof(int32_t);
-  paramLengths[4] = strlen(sf->description);
+  if (sf->description != NULL) {
+    paramLengths[4] = strlen(sf->description);
+  } else {
+    paramLengths[4] = 0;
+  }
   paramLengths[5] = sizeof(int32_t);
-
+  
   paramFormats[0] = BIN;
   paramFormats[1] = TEXT;
   paramFormats[2] = BIN;

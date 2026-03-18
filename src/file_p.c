@@ -95,15 +95,16 @@ void file_list(session *sess, server_data_t *s_d, i_file_list_t *f_args) {
     int h_len = sprintf(item_h, "%s %zu %s", fl_current->name, fl_current->size,
                         fl_current->owner);
     int d_len = strlen(fl_current->description);
-    int f_len = h_len + d_len + 2;
-    char *full_str = malloc(sizeof(char) * f_len);
-    sprintf(full_str, "%s %s", item_h, fl_current->description);
-    int i;
-    for (i = h_len; i < h_len + d_len; i++) {
-      if (full_str[i] == '\n') {
-        full_str[i] = '\a';
+
+    for (int i = h_len; i < d_len; i++) {
+      if (fl_current->description[i] == '\n') {
+        fl_current->description[i] = '\a';
       }
     }
+
+    int f_len = h_len + d_len + 3;
+    char *full_str = malloc(sizeof(char) * f_len);
+    sprintf(full_str, "%s %s\n", item_h, fl_current->description);
     write(sess->sd, full_str, f_len - 1); // -1 : do not include \0
     free(full_str);
     sess->fl_current = fl_current;
@@ -304,12 +305,12 @@ void file_load(session *sess, enum f_actions f_action) {
       clear_file_from_sess(sess);
     } else {
       printf("File %s is uploaded to the server\n", sess->file->name);
+      session_send_string(sess, "finished\n");
+      if (db_save_file(sess)) {
+        clear_file_from_sess(sess);
+      }
     }
-    if (f_action == F_UPLOAD) {
-      sess->state = OP_UPLOAD_DESCRIPTION;
-    } else {
-      sess->state = OP_WAIT;
-    }
+    sess->state = OP_WAIT;
   }
 }
 

@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -54,8 +55,14 @@ session *make_new_session(int fd, struct sockaddr_in *from, char *wm) {
   return sess;
 }
 
-void session_send_string(struct session *sess, const char *str) {
-  write(sess->sd, str, strlen(str));
+void session_send_string(struct session *sess, const char *fmt, ...) {
+  char buf[INBUFSIZE];
+  size_t b_len = 0;
+  va_list args;
+  va_start(args, fmt);
+  b_len = vsprintf(buf, fmt, args);
+  write(sess->sd, buf, b_len);
+  va_end(args);
 }
 
 int session_do_read(session *sess, char **read_str) {
@@ -130,8 +137,6 @@ int query_extract_from_buf(session *sess, char **output_line) {
 void perform_session_action(session *sess, char *line, server_data_t *s_d) {
   int state = sess->state;
   int res;
-  char response[INBUFSIZE];
-  uint32_t response_len = 0;
   /* while (sess->buf_used) { */
   switch (state) {
   case OP_LOGIN_USR:
@@ -153,8 +158,7 @@ void perform_session_action(session *sess, char *line, server_data_t *s_d) {
     res = file_upload_description(sess, line, s_d);
     if (res) {
       if (db_save_file(sess)) {
-        response_len = sprintf(response, "File \"%s\" is saved!\04\n", sess->file->name);
-        write(sess->sd, response, response_len+1);
+        session_send_string(sess, "File \"%s\" is saved!\04\n", sess->file->name);
         clear_file_from_sess(sess);
         sess->state = OP_WAIT;
       } else {

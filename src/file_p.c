@@ -181,17 +181,20 @@ int32_t file_send_prepare(session *sess, char *line, server_data_t *s_d) {
 
 int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
   int sd = sess->sd;
-  char fname[64];
-  size_t fsize;
+  size_t fsize = 0;
   int perm;
-  sscanf(line, "file upload \"%s %zd %d", fname, &fsize, &perm);
+  /* TODO:  */
+  char *name_begin = strchr(line, '"') + 1;
+  char *name_end = strrchr(line, '"');
+  int name_len = name_end - name_begin;
+  sscanf(name_end, "\" %zd %d", &fsize, &perm);
   sess->file = malloc(sizeof(s_file_t));
-  sess->file->name = malloc(sizeof(char) * strlen(fname));
+  sess->file->name = malloc(sizeof(char) * (name_len + 1));
   sess->file->path = malloc(sizeof(STORAGE_FOLDER) + 2 + 9);
   sess->file->permissions = (char)perm;
   sess->file->description = NULL;
-  strncpy(sess->file->name, fname, strlen(fname) - 1);
-  sess->file->name[strlen(fname) - 1] = 0;
+  strncpy(sess->file->name, name_begin, name_len);
+  sess->file->name[name_len] = 0;
 
   char mes[256];
   char mes_len = 0;

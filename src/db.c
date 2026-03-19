@@ -129,6 +129,12 @@ int32_t db_user_auth(i_auth_t *c, o_auth_t *r) {
   if (PQresultStatus(res) != PGRES_TUPLES_OK && !PQntuples(res))
     return exit_query(1);
 
+  const int tup_len = PQntuples(res);
+
+  if (tup_len == 0) {
+    return exit_query(4);
+  }
+
   const char *pass = PQgetvalue(res, 0, 2);
   string_to_SHA256(c->pass, passHashed);
   if (pass == NULL) {

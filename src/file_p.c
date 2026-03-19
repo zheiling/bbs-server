@@ -92,8 +92,8 @@ void file_list(session *sess, server_data_t *s_d, i_file_list_t *f_args) {
         !fl_current->permissions) {
       continue;
     }
-    int h_len = sprintf(item_h, "%s %zu %s", fl_current->name, fl_current->size,
-                        fl_current->owner);
+    int h_len = sprintf(item_h, "[%s] %zu %s", fl_current->name,
+                        fl_current->size, fl_current->owner);
     int d_len = strlen(fl_current->description);
 
     for (int i = h_len; i < d_len; i++) {
@@ -143,7 +143,11 @@ int32_t file_send_prepare(session *sess, char *line, server_data_t *s_d) {
   char err_mes[256];
   uint32_t mlen;
 
-  sscanf(line, "%*s %*s %s", args.name);
+  char *name_begin = strchr(line, '[') + 1;
+  char *name_end = strrchr(line, ']');
+  int name_len = name_end - name_begin;
+  strncpy(args.name, name_begin, name_len);
+  args.name[name_len] = 0;
   sess->file = db_get_file(&args);
 
   if (sess->file == NULL)
@@ -183,7 +187,6 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
   int sd = sess->sd;
   size_t fsize = 0;
   int perm;
-  /* TODO:  */
   char *name_begin = strchr(line, '"') + 1;
   char *name_end = strrchr(line, '"');
   int name_len = name_end - name_begin;

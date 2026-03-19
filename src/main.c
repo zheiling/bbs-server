@@ -4,6 +4,7 @@
 #include "main.h"
 #include "server.h"
 #include "db.h"
+#include <stdio.h>
 
 /* *** MAIN *** */
 int main(int argc, char *argv[]) {
@@ -12,6 +13,8 @@ int main(int argc, char *argv[]) {
   server_data.welcome_message = get_welcome_mes();
   init_db_connection();
   server_data.ls = start_server();
+  /* TODO: display server port */
+  printf("Server is started!\n");
   server_main_loop(&server_data);
   return 0;
 }

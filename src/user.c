@@ -17,7 +17,7 @@ int32_t create_user(session *sess, char *line) {
     res = db_user_create(&p);
     if (res > 0) {
       sess->state = OP_WAIT;
-      sess->uname = malloc(strlen(p.uname));
+      sess->uname = malloc(strlen(p.uname)+1);
       strcpy(sess->uname, p.uname);
       sess->uid = res;
       sess->privileges = 1; /* by default */

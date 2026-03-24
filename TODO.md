@@ -1,5 +1,6 @@
 # Development plans
 
+- [] Remove file when error while saving the data in DB
 ## Features
 
 - [ ] Return back email field in registration

@@ -93,7 +93,7 @@ char *get_welcome_mes(void) {
     perror(WELCOME_FILE_NAME);
     exit(7);
   }
-  int filesize = lseek(fd, 0, SEEK_END);
+  int filesize = lseek(fd, 0, SEEK_END)+1;
   lseek(fd, 0, SEEK_SET);
   char *welcome_message =
       mmap(NULL, filesize, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
@@ -102,11 +102,12 @@ char *get_welcome_mes(void) {
     close(fd);
     exit(5);
   }
+  welcome_message[filesize-1] = '\04';
   close(fd);
   return welcome_message;
 }
 
-int start_server() {
+int start_server(void) {
   int res;
   int ls = socket(AF_INET, SOCK_STREAM, 0);
   struct sockaddr_in s_addr;

@@ -1,6 +1,9 @@
 # Development plans
 
 - [] Remove file when error while saving the data in DB
+
+## Tasks
+- [] Switch to SQLite
 ## Features
 
 - [ ] Return back email field in registration

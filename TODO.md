@@ -6,7 +6,6 @@
 - [] Switch to SQLite
 ## Features
 
-- [ ] Return back email field in registration
 - [x] Database integration
 - [x] Paging in the file list
 - [x] Get files in FS by their hash

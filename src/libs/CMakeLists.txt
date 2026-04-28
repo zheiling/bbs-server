@@ -1,1 +1,2 @@
 add_subdirectory(murmur3)
+add_subdirectory(sqlite)

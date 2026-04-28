@@ -4,6 +4,7 @@
 
 ## Tasks
 - [] Switch to SQLite
+- [] Auto create a database when one is missing.
 ## Features
 
 - [x] Database integration

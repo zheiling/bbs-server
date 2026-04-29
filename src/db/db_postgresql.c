@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: MIT */
 /* Copyright (c) 2026 Oleksandr Zhylin */
 
-#include "db.h"
-#include "main.h"
+#include <db.h>
+#include "../main.h"
 #include <endian.h>
 #include <fcntl.h>
 #include <libpq-fe.h>
@@ -24,9 +24,7 @@
 static PGconn *conn = NULL;
 static PGresult *res = NULL;
 
-// #define USR_NOT_FOUND "User with such credentials is not found!"
-
-static void clearRes() {
+static void clearRes(void) {
   PQclear(res);
   res = NULL;
 }

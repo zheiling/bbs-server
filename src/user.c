@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 /* Copyright (c) 2026 Oleksandr Zhylin */
 
-#include "db.h"
+#include <db.h>
 #include "main.h"
 #include "session.h"
 #include <stdint.h>

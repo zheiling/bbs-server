@@ -10,11 +10,12 @@ target_sources(zbbs-server
 )
 
 add_subdirectory(libs)
+add_subdirectory(db)
 
 target_link_libraries(zbbs-server 
     PRIVATE
+        db
         murmur3
-        PostgreSQL::PostgreSQL
         OpenSSL::Crypto
 )
 

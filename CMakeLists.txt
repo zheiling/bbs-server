@@ -6,6 +6,9 @@ project(ZBBSServer
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Uncomment if you need to use PostgresQL
+# add_compile_definitions(ZBBSServer USE_POSTGRESQL)
+
 if(
   (CMAKE_CXX_COMPILER_ID STREQUAL "GNU") OR
   (CMAKE_CXX_COMPILER_ID MATCHES "Clang")

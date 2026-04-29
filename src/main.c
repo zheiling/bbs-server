@@ -3,7 +3,7 @@
 
 #include "main.h"
 #include "server.h"
-#include "db.h"
+#include <db.h>
 #include <stdio.h>
 
 /* *** MAIN *** */
@@ -12,6 +12,7 @@ int main(int argc, char *argv[]) {
   prepare_start(argc, argv);
   server_data.welcome_message = get_welcome_mes();
   init_db_connection();
+  return 0;
   server_data.ls = start_server();
   /* TODO: display server port */
   printf("Server is started!\n");

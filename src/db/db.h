@@ -3,7 +3,7 @@
 
 #ifndef DB_H
 #define DB_H
-#include "main.h"
+#include "../main.h"
 #include <stdint.h>
 
 /* Auth */

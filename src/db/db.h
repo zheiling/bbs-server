@@ -44,6 +44,8 @@ typedef struct {
   char email[EMAIL_LEN];
 } i_db_user_create;
 
+enum db_cb_resp { db_no_result, db_success, db_err };
+
 int32_t init_db_connection();
 int32_t db_save_file(session *s);
 int32_t db_user_auth(i_auth_t *credentials, o_auth_t *response);

@@ -6,6 +6,9 @@
 #include <endian.h>
 #include <openssl/sha.h>
 #include <sqlite3.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -16,6 +19,19 @@
 #define ENCR_SIZE 2048
 
 static sqlite3 *db;
+
+enum db_arg_type {
+  db_str,
+  db_int,
+  db_int64,
+  db_uint,
+  db_uint64,
+  db_blob,
+  db_size, /* size for subsequent arg */
+  db_end
+};
+
+typedef enum db_cb_resp (*db_callback)(sqlite3_stmt *stmt, void **resp);
 
 void print_err(char **err) {
   if (*err != NULL) {
@@ -103,7 +119,86 @@ void string_to_SHA256(const char *str, char *restrict out) {
   SHA256_raw_to_string(passHashed, out);
 }
 
-int32_t db_user_auth(i_auth_t *c, o_auth_t *r) { return 0; }
+enum db_cb_resp db_query(const char *zSql, db_callback callback, void **a_resp,
+                         enum db_arg_type arg_types[], ...) {
+  sqlite3_stmt *stmt;
+  const char *pzTail;
+  enum db_cb_resp res = db_no_result;
+  size_t size = 0;
+
+  /* Prepare arguments */
+
+  va_list args;
+  va_start(args, arg_types);
+
+  if (sqlite3_prepare_v2(db, zSql, -1, &stmt, &pzTail) != SQLITE_OK) {
+    return db_err;
+  }
+
+  for (int i = 0; arg_types[i] != db_end; i++) {
+    switch (arg_types[i]) {
+    case db_str:
+      sqlite3_bind_text(stmt, i + 1, va_arg(args, char *), size > 0 ? size : -1,
+                        NULL);
+      size = 0;
+      break;
+    case db_int:
+      sqlite3_bind_int(stmt, i + 1, va_arg(args, int));
+      break;
+    case db_int64:
+      sqlite3_bind_int64(stmt, i + 1, va_arg(args, int64_t));
+      break;
+    case db_uint:
+      sqlite3_bind_int(stmt, i + 1, va_arg(args, unsigned int));
+      break;
+    case db_uint64:
+      sqlite3_bind_int64(stmt, i + 1, va_arg(args, uint64_t));
+      break;
+    case db_blob:
+      if (size > 0) {
+        sqlite3_bind_blob(stmt, i + 1, va_arg(args, void *), size, NULL);
+        size = 0;
+      } else {
+        fprintf(stderr, "SQL ERROR: Size for a blob must be specified!\n");
+        return db_err;
+      }
+      break;
+    case db_size:
+      size = va_arg(args, size_t);
+      break;
+    default:
+      break;
+    }
+  }
+
+  va_end(args);
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+    res = callback(stmt, a_resp);
+    if (res != db_no_result)
+      break;
+  }
+
+  sqlite3_finalize(stmt);
+  return res;
+}
+
+enum db_cb_resp db_user_auth_db(sqlite3_stmt *stmt, void **resp) {
+  return db_success;
+  /* TODO: complete */
+}
+
+int32_t db_user_auth(i_auth_t *c, o_auth_t *r) {
+  enum db_arg_type args[] = {db_str};
+  long int user_id;
+  char zSql[] = "SELECT id, username, password, privileges "
+                "FROM users "
+                "WHERE username= $1";
+  db_query(zSql, db_user_auth_db, (void *)&user_id, args, c->name);
+
+  /* TODO: complete */
+  return 0;
+}
 
 int32_t db_user_create(i_db_user_create *args) { return 0; }
 

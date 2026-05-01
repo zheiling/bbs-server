@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: MIT */
 /* Copyright (c) 2026 Oleksandr Zhylin */
 
+/* TODO: variadic function for preparing parameters */
+
 #include <db.h>
 #include "../main.h"
 #include <endian.h>

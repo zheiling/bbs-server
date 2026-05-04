@@ -44,7 +44,7 @@ typedef struct {
   char email[EMAIL_LEN];
 } i_db_user_create;
 
-enum db_cb_resp { db_no_result, db_success, db_err };
+enum db_cb_resp { db_no_result, db_success, db_err, db_fail }; /* fail: the problem is on the user's side; no error */
 
 int32_t init_db_connection();
 int32_t db_save_file(session *s);

@@ -15,6 +15,7 @@ endif()
 target_sources(db
     PRIVATE
         "db.c"
+        "db_common.c"
     PUBLIC
         FILE_SET HEADERS
         FILES

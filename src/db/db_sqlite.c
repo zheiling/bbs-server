@@ -2,6 +2,7 @@
 /* Copyright (c) 2026 Oleksandr Zhylin */
 
 #include "../main.h"
+#include "db_common.h"
 #include <db.h>
 #include <endian.h>
 #include <openssl/sha.h>
@@ -11,6 +12,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #define UNUSED(x) (void)(x)
 #define Q_LEN 128
@@ -31,7 +33,7 @@ enum db_arg_type {
   db_end
 };
 
-typedef enum db_cb_resp (*db_callback)(sqlite3_stmt *stmt, void **resp);
+typedef enum db_cb_resp (*db_callback)(sqlite3_stmt *stmt, void *resp);
 
 void print_err(char **err) {
   if (*err != NULL) {
@@ -96,7 +98,7 @@ int check_and_create_tables() {
 }
 
 int init_db_connection(void) {
-  int res = sqlite3_open("db.sql", &db);
+  int res = sqlite3_open("db.sqlite", &db);
   char *err = NULL;
   if (!res) {
     res = check_and_create_tables();
@@ -104,22 +106,8 @@ int init_db_connection(void) {
 
   return 0;
 }
-
-void SHA256_raw_to_string(const unsigned char *passHashed, char *restrict out) {
-  int i;
-  for (i = 0; i < 4; i++) {
-    uint64_t *num_pointer = (uint64_t *)(passHashed + i * 8);
-    sprintf(out + 16 * i, "%016lx", htobe64(*num_pointer));
-  }
-}
-
-void string_to_SHA256(const char *str, char *restrict out) {
-  unsigned char md[SHA256_DIGEST_LENGTH];
-  unsigned char *passHashed = SHA256((unsigned char *)str, strlen(str), md);
-  SHA256_raw_to_string(passHashed, out);
-}
-
-enum db_cb_resp db_query(const char *zSql, db_callback callback, void **a_resp,
+/* ATTENTION: you need to make a copy of responses in callbacks. */
+enum db_cb_resp db_query(const char *zSql, db_callback callback, void *a_resp,
                          enum db_arg_type arg_types[], ...) {
   sqlite3_stmt *stmt;
   const char *pzTail;
@@ -183,28 +171,75 @@ enum db_cb_resp db_query(const char *zSql, db_callback callback, void **a_resp,
   return res;
 }
 
-enum db_cb_resp db_user_auth_db(sqlite3_stmt *stmt, void **resp) {
-  return db_success;
-  /* TODO: complete */
+struct db_user_login_data {
+  char *passwordHashed;
+  o_auth_t *r;
+};
+
+enum db_cb_resp db_user_auth_db(sqlite3_stmt *stmt, void *resp) {
+  struct db_user_login_data *data = (struct db_user_login_data *)resp;
+  const unsigned char *pass = sqlite3_column_text(stmt, 2);
+  if (!strcmp(data->passwordHashed, (const char *)pass)) {
+    data->r->uid = sqlite3_column_int(stmt, 0);
+    data->r->privileges = sqlite3_column_int(stmt, 6);
+    return db_success;
+  } else {
+    return db_fail;
+  }
 }
 
 int32_t db_user_auth(i_auth_t *c, o_auth_t *r) {
-  enum db_arg_type args[] = {db_str};
+  char passHashed[SHA256_DIGEST_LENGTH * 2];
+  struct db_user_login_data data = {.r = r};
+  string_to_SHA256(c->pass, passHashed);
+  data.passwordHashed = passHashed;
+  enum db_arg_type arg_types[] = {db_str, db_end};
   long int user_id;
+  enum db_cb_resp res;
   char zSql[] = "SELECT id, username, password, privileges "
                 "FROM users "
                 "WHERE username= $1";
-  db_query(zSql, db_user_auth_db, (void *)&user_id, args, c->name);
+  res = db_query(zSql, db_user_auth_db, (void *)&data, arg_types, c->name);
 
-  /* TODO: complete */
+  if (res == db_success) {
+    char u_buf[128];
+    sprintf(u_buf, "UPDATE users SET last_login = NOW() WHERE id = %u", r->uid);
+    sqlite3_exec(db, u_buf, NULL, NULL, NULL);
+    return r->uid;
+  }
   return 0;
 }
 
-int32_t db_user_create(i_db_user_create *args) { return 0; }
+struct db_user_create_data {
+  int uid;
+};
+
+enum db_cb_resp db_user_create_db(sqlite3_stmt *stmt, void *resp) {
+  struct db_user_create_data *data = (struct db_user_create_data *)resp;
+  data->uid = sqlite3_column_int(stmt, 0);
+
+  return db_success;
+}
+
+int32_t db_user_create(i_db_user_create *args) {
+  char passHashed[SHA256_DIGEST_LENGTH * 2];
+  struct db_user_create_data data = {.uid = 0};
+  string_to_SHA256(args->pass, passHashed);
+  enum db_arg_type arg_types[] = {db_str, db_str, db_str, db_end};
+  long int user_id;
+  enum db_cb_resp res;
+  char zSql[] = "INSERT INTO users (username, password, email, "
+                "privileges, created_at, last_login)"
+                " VALUES ($1, $2, $3, 1, NOW(), NOW()) RETURNING id";
+
+  res = db_query(zSql, db_user_create_db, (void *)NULL, arg_types, args->uname,
+                 args->pass, args->email);
+
+  return data.uid;
+}
 
 int32_t db_save_file(session *s) { return 0; }
 
-// TODO: get file
 s_file_t *db_get_file(i_get_file_db *arg) {
   s_file_t *sf = NULL;
 

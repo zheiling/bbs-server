@@ -1,10 +1,13 @@
 # Development plans
 
-- [] Remove file when error while saving the data in DB
+- [ ] Remove file when error while saving the data in DB
 
 ## Tasks
-- [] Switch to SQLite
-- [] Auto create a database when one is missing.
+
+- [ ] Switch to SQLite
+- [ ] Check registration
+- [x] Auto create a database when one is missing.
+
 ## Features
 
 - [x] Database integration

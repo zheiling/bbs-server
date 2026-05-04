@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "db_common.h"
 
 #define UNUSED(x) (void)(x)
 #define Q_LEN 128
@@ -99,20 +100,6 @@ int init_db_connection() {
   printf("Connection established! server version: %d, user: %s, db: %s\n",
          server_ver, user, db_name);
   return exit_query(0);
-}
-
-void SHA256_raw_to_string(const unsigned char *passHashed, char *restrict out) {
-  int i;
-  for (i = 0; i < 4; i++) {
-    uint64_t *num_pointer = (uint64_t *)(passHashed + i * 8);
-    sprintf(out + 16 * i, "%016lx", htobe64(*num_pointer));
-  }
-}
-
-void string_to_SHA256(const char *str, char *restrict out) {
-  unsigned char md[SHA256_DIGEST_LENGTH];
-  unsigned char *passHashed = SHA256((unsigned char *)str, strlen(str), md);
-  SHA256_raw_to_string(passHashed, out);
 }
 
 int32_t db_user_auth(i_auth_t *c, o_auth_t *r) {
@@ -264,7 +251,6 @@ int32_t db_save_file(session *s) {
   return id;
 }
 
-// TODO: get file
 s_file_t *db_get_file(i_get_file_db *arg) {
   s_file_t *sf;
   char s_field[24];

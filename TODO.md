@@ -5,6 +5,7 @@
 ## Tasks
 
 - [ ] Switch to SQLite
+- [ ] Files search doesn't work
 - [ ] Check registration
 - [ ] Common functions for both DBs, only db_query should be different
 - [ ] Close the DB correctly in any quit case (also by SIGTERM)

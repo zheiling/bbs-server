@@ -317,8 +317,8 @@ uint64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
   uint64_t count;
   uint64_t n_limit = htobe64(arg->limit);
   uint64_t n_offset = htobe64(arg->offset);
-  bool by_name = strlen(arg->name) > 0;
-  uint32_t params_num = 3;
+  bool by_name = strlen(arg->search_str) > 0;
+  int32_t params_num = 3;
 
   switch (arg->sort_by) {
   case NAME:
@@ -341,11 +341,11 @@ uint64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
 
   paramValues[0] = (char *)&n_limit;
   paramValues[1] = (char *)&n_offset;
-  paramValues[2] = arg->name;
+  paramValues[2] = arg->search_str;
 
   paramLengths[0] = sizeof(n_limit);
   paramLengths[1] = sizeof(n_offset);
-  paramLengths[2] = strlen(arg->name);
+  paramLengths[2] = strlen(arg->search_str);
 
   paramFormats[0] = BIN;
   paramFormats[1] = BIN;

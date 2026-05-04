@@ -31,7 +31,7 @@ enum sort_by { ID, NAME, CREATED_AT, USER_ID };
 
 typedef struct {
   uint32_t user_id; // TODO: implement
-  char name[FILE_NAME_LEN];    // TODO: implement
+  char search_str[FILE_NAME_LEN];    // TODO: implement
   uint32_t limit;
   uint32_t offset;
   enum sort_by sort_by;

@@ -62,9 +62,9 @@ void file_list(session *sess, server_data_t *s_d, i_file_list_t *f_args) {
   args.sort_by = ID;
   args.sort_direction = ASC;
   if (f_args->name != NULL) {
-    strcpy(args.name, f_args->name);
+    strcpy(args.search_str, f_args->name);
   } else {
-    args.name[0] = '\0';
+    args.search_str[0] = '\0';
   }
 
   count = db_get_files_data(&args, &fl_start, &full_count);

@@ -8,9 +8,11 @@
 #include <openssl/sha.h>
 #include <sqlite3.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -106,18 +108,18 @@ int init_db_connection(void) {
 
   return 0;
 }
+
 /* ATTENTION: you need to make a copy of responses in callbacks. */
-enum db_cb_resp db_query(const char *zSql, db_callback callback, void *a_resp,
-                         enum db_arg_type arg_types[], ...) {
+enum db_cb_resp vdb_query(const char *zSql, db_callback callback, void *a_resp,
+                          int *count_ptr, enum db_arg_type arg_types[],
+                          va_list va_list) {
   sqlite3_stmt *stmt;
   const char *pzTail;
   enum db_cb_resp res = db_no_result;
   size_t size = 0;
+  int _count = 0;
 
   /* Prepare arguments */
-
-  va_list args;
-  va_start(args, arg_types);
 
   if (sqlite3_prepare_v2(db, zSql, -1, &stmt, &pzTail) != SQLITE_OK) {
     return db_err;
@@ -126,25 +128,25 @@ enum db_cb_resp db_query(const char *zSql, db_callback callback, void *a_resp,
   for (int i = 0; arg_types[i] != db_end; i++) {
     switch (arg_types[i]) {
     case db_str:
-      sqlite3_bind_text(stmt, i + 1, va_arg(args, char *), size > 0 ? size : -1,
-                        NULL);
+      sqlite3_bind_text(stmt, i + 1, va_arg(va_list, char *),
+                        size > 0 ? size : -1, NULL);
       size = 0;
       break;
     case db_int:
-      sqlite3_bind_int(stmt, i + 1, va_arg(args, int));
+      sqlite3_bind_int(stmt, i + 1, va_arg(va_list, int));
       break;
     case db_int64:
-      sqlite3_bind_int64(stmt, i + 1, va_arg(args, int64_t));
+      sqlite3_bind_int64(stmt, i + 1, va_arg(va_list, int64_t));
       break;
     case db_uint:
-      sqlite3_bind_int(stmt, i + 1, va_arg(args, unsigned int));
+      sqlite3_bind_int(stmt, i + 1, va_arg(va_list, unsigned int));
       break;
     case db_uint64:
-      sqlite3_bind_int64(stmt, i + 1, va_arg(args, uint64_t));
+      sqlite3_bind_int64(stmt, i + 1, va_arg(va_list, uint64_t));
       break;
     case db_blob:
       if (size > 0) {
-        sqlite3_bind_blob(stmt, i + 1, va_arg(args, void *), size, NULL);
+        sqlite3_bind_blob(stmt, i + 1, va_arg(va_list, void *), size, NULL);
         size = 0;
       } else {
         fprintf(stderr, "SQL ERROR: Size for a blob must be specified!\n");
@@ -152,23 +154,43 @@ enum db_cb_resp db_query(const char *zSql, db_callback callback, void *a_resp,
       }
       break;
     case db_size:
-      size = va_arg(args, size_t);
+      size = va_arg(va_list, size_t);
       break;
     default:
       break;
     }
   }
 
-  va_end(args);
+  va_end(va_list);
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
     res = callback(stmt, a_resp);
-    if (res != db_no_result)
+    if (res == db_err)
       break;
+    _count++;
+  }
+
+  if (count_ptr != NULL) {
+    *count_ptr = _count;
   }
 
   sqlite3_finalize(stmt);
   return res;
+}
+
+enum db_cb_resp db_query(const char *zSql, db_callback callback, void *a_resp,
+                         enum db_arg_type arg_types[], ...) {
+  va_list args;
+  va_start(args, arg_types);
+  return vdb_query(zSql, callback, a_resp, NULL, arg_types, args);
+}
+
+enum db_cb_resp db_query_count(const char *zSql, db_callback callback,
+                               void *a_resp, int *count_ptr,
+                               enum db_arg_type arg_types[], ...) {
+  va_list args;
+  va_start(args, arg_types);
+  return vdb_query(zSql, callback, a_resp, count_ptr, arg_types, args);
 }
 
 struct db_user_login_data {
@@ -198,7 +220,7 @@ int32_t db_user_auth(i_auth_t *c, o_auth_t *r) {
   enum db_cb_resp res;
   char zSql[] = "SELECT id, username, password, privileges "
                 "FROM users "
-                "WHERE username= $1";
+                "WHERE username= ?";
   res = db_query(zSql, db_user_auth_db, (void *)&data, arg_types, c->name);
 
   if (res == db_success) {
@@ -230,7 +252,7 @@ int32_t db_user_create(i_db_user_create *args) {
   enum db_cb_resp res;
   char zSql[] = "INSERT INTO users (username, password, email, "
                 "privileges, created_at, last_login)"
-                " VALUES ($1, $2, $3, 1, NOW(), NOW()) RETURNING id";
+                " VALUES (?, ?, ?, 1, NOW(), NOW()) RETURNING id";
 
   res = db_query(zSql, db_user_create_db, (void *)NULL, arg_types, args->uname,
                  args->pass, args->email);
@@ -246,8 +268,127 @@ s_file_t *db_get_file(i_get_file_db *arg) {
   return sf;
 }
 
+struct db_get_files_data {
+  fl_t **fl_start;
+  fl_t **fl_current;
+};
+
+enum db_cb_resp db_get_files_data_db(sqlite3_stmt *stmt, void *resp) {
+  struct db_get_files_data *data = (struct db_get_files_data *)resp;
+  fl_t **fl_start = data->fl_start;
+  fl_t *fl_current = *(data->fl_current);
+  fl_t *l_item = malloc(sizeof(fl_t));
+  l_item->next = NULL;
+  l_item->id = sqlite3_column_int(stmt, 0);
+  l_item->owner_id = sqlite3_column_int(stmt, 1);
+  const char *name = (const char *)sqlite3_column_text(stmt, 2);
+  l_item->name = malloc(strlen(name) + 1);
+  strcpy(l_item->name, name);
+  l_item->size = sqlite3_column_int64(stmt, 3);
+  const char *description = (const char *)sqlite3_column_text(stmt, 4);
+  l_item->description = malloc(strlen(description) + 1);
+  strcpy(l_item->description, description);
+  l_item->permissions = sqlite3_column_int(stmt, 5);
+  l_item->hash = sqlite3_column_int(stmt, 6);
+  const char *owner = (const char *)sqlite3_column_text(stmt, 7);
+  l_item->owner = malloc(strlen(owner) + 1);
+  strcpy(l_item->owner, owner);
+
+  if (*fl_start == NULL) {
+    *fl_start = l_item;
+  } else {
+    fl_current->next = l_item;
+  }
+  *(data->fl_current) = l_item;
+  return db_success;
+}
+
+enum db_cb_resp db_get_files_count_db(sqlite3_stmt *stmt, void *resp) {
+  int *_count_full = (int *)resp;
+  *_count_full = sqlite3_column_int(stmt, 0);
+  return db_success;
+}
+
 uint64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
                            uint64_t *full_count) {
   fl_t *fl_current = NULL;
+  char zSql[512];
+  struct db_get_files_data data = {.fl_current = &fl_current,
+                                   .fl_start = fl_start};
+
+  char sort_by[16] = "id";
+  char sort_dir[5] = "ASC";
+
+  int count = 0;
+  int n_limit = htobe64(arg->limit);
+  int n_offset = htobe64(arg->offset);
+  enum db_cb_resp res;
+  bool by_name = strlen(arg->search_str) > 0;
+  int32_t params_num = 3;
+
+  switch (arg->sort_by) {
+  case NAME:
+    strcpy(sort_by, "name");
+    break;
+  case CREATED_AT:
+    strcpy(sort_by, "created_at");
+    break;
+  case USER_ID:
+    strcpy(sort_by, "user_id");
+    break;
+  case ID: // id is by default
+  default:
+    break;
+  }
+
+  if (arg->sort_direction == DESC) {
+    strcpy(sort_dir, "DESC");
+  }
+
+  if (!by_name) {
+    params_num = 2;
+    enum db_arg_type arg_types[] = {db_int, db_int, db_end};
+    sprintf(zSql,
+            "SELECT files.id, user_id, name, size, description, permissions, "
+            "hash, username "
+            "FROM files JOIN users ON user_id = users.id "
+            "ORDER BY files.%s %s LIMIT ? OFFSET ?",
+            sort_by, sort_dir);
+    res = db_query_count(zSql, db_get_files_data_db, (void *)&data, &count,
+                         arg_types, arg->limit, arg->offset);
+  } else {
+    enum db_arg_type arg_types[] = {db_str, db_int, db_int, db_end};
+    sprintf(zSql,
+            "SELECT files.id, user_id, name, size, description, permissions, "
+            "hash, username "
+            "FROM files JOIN users ON user_id = users.id "
+            "WHERE name ILIKE '%%' || ? || '%%'"
+            "ORDER BY files.%s %s LIMIT ? OFFSET ?",
+            sort_by, sort_dir);
+    res = db_query_count(zSql, db_get_files_data_db, (void *)&data, &count,
+                         arg_types, arg->search_str, arg->limit, arg->offset);
+  }
+
+  if (res == db_success) {
+    if (by_name) {
+      enum db_arg_type _arg_types[] = {db_int, db_end};
+
+      res = db_query("SELECT COUNT(id) "
+                     "FROM files "
+                     "WHERE name ILIKE '%%' || ? || '%%'",
+                     db_get_files_count_db, full_count, _arg_types,
+                     arg->search_str);
+    } else {
+      enum db_arg_type _arg_types[] = {db_end};
+      res = db_query("SELECT COUNT(id) "
+                     "FROM files ",
+                     db_get_files_count_db, full_count, _arg_types);
+    }
+
+    if (res == db_success) {
+      return count;
+    }
+  }
+
   return 0;
 }

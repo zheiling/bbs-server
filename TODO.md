@@ -6,6 +6,8 @@
 
 - [ ] Switch to SQLite
 - [ ] Check registration
+- [ ] Common functions for both DBs, only db_query should be different
+- [ ] Close the DB correctly in any quit case (also by SIGTERM)
 - [x] Auto create a database when one is missing.
 
 ## Features

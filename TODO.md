@@ -5,7 +5,6 @@
 ## Tasks
 
 - [ ] Switch to SQLite
-- [ ] Files search doesn't work
 - [ ] Get rid of unsigned integers
 - [ ] Check registration
 - [ ] Common functions for both DBs, only db_query should be different

@@ -1,6 +1,7 @@
 add_library(db STATIC)
 
 if (USE_POSTGRESQL)
+    target_compile_definitions(db PRIVATE USE_POSTGRESQL)
     target_link_libraries(db
         PRIVATE
             PostgreSQL::PostgreSQL
@@ -8,7 +9,7 @@ if (USE_POSTGRESQL)
 else()
     target_link_libraries(db
         PRIVATE
-            sqlite
+            SQLite3::SQLite3
     )
 endif()
 

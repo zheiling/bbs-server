@@ -7,7 +7,19 @@ project(ZBBSServer
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Uncomment if you need to use PostgresQL
-# add_compile_definitions(ZBBSServer USE_POSTGRESQL)
+option(USE_POSTGRESQL "Use PostgreSQL instead of SQLite" OFF)
+
+if (USE_POSTGRESQL)
+  find_package(PostgreSQL REQUIRED)
+  if(NOT PostgreSQL_FOUND)
+    message(FATAL_ERROR "PostgreSQL not found. Please install libpq-dev or set PostgreSQL_ROOT.")
+  endif()
+else()
+  find_package(SQLite3 REQUIRED)
+  if(NOT SQLite3_FOUND)
+    message(FATAL_ERROR "SQLite3 not found. Please install sqlite3-devel or set SQLite3_ROOT.")
+  endif()
+endif()
 
 if(
   (CMAKE_CXX_COMPILER_ID STREQUAL "GNU") OR
@@ -16,16 +28,10 @@ if(
   add_compile_definitions(_GNU_SOURCE) 
 endif()
 
-find_package(PostgreSQL REQUIRED)
-if(NOT PostgreSQL_FOUND)
-    message(FATAL_ERROR "PostgreSQL not found. Please install libpq-dev or set PostgreSQL_ROOT.")
-endif()
-
 find_package(OpenSSL REQUIRED)
 if(NOT OpenSSL_FOUND)
     message(FATAL_ERROR "OpenSSL not found. Please install libcrypto or set OpenSSL_ROOT.")
 endif()
-
 
 set(CURSES_NEED_NCURSES TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

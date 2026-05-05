@@ -2,10 +2,10 @@
 /* Copyright (c) 2026 Oleksandr Zhylin */
 
 #include "file_p.h"
-#include <db.h>
 #include "main.h"
 #include "session.h"
 #include <arpa/inet.h>
+#include <db.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <murmur3.h>
@@ -79,7 +79,8 @@ void file_list(session *sess, server_data_t *s_d, i_file_list_t *f_args) {
   sprintf(page_info, ":END: PAGE %u/%lu COUNT: %lu/%lu\n", f_args->page,
           pages_count, count, full_count - (f_args->page - 1) * f_args->limit);
 
-  if (!fl_start) {
+  /* case: no files */
+  if (fl_start == NULL) {
     write(sess->sd, page_info, strlen(page_info));
     return;
   }
@@ -161,7 +162,7 @@ int32_t file_send_prepare(session *sess, char *line, server_data_t *s_d) {
   file_d = open(sess->file->path, O_RDONLY);
 
   if (file_d == -1) {
-    fprintf(stdout, "ERROR: %d\n", errno);
+    fprintf(stdout, "Error opening file: %d\n", errno);
     mlen = sprintf(err_mes, "Can't open file with id = %u\n", sess->file->id);
     write(sd, err_mes, mlen);
     return -2;

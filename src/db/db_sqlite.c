@@ -54,14 +54,14 @@ int check_and_create_tables() {
 
   res = sqlite3_exec(db,
                      "CREATE TABLE IF NOT EXISTS 'users' ("
-                     "  'id' SERIAL,"
-                     "  'username' VARCHAR(50) NOT NULL,"
+                     "  'id' INTEGER NOT NULL UNIQUE,"
+                     "  'username' VARCHAR(50) NOT NULL UNIQUE,"
                      "  'password' CHARACTER(64) NOT NULL,"
-                     "  'email' VARCHAR(255) NOT NULL,"
+                     "  'email' VARCHAR(255) NOT NULL UNIQUE,"
                      "  'created_at' TIMESTAMP NOT NULL,"
                      "  'last_login' TIMESTAMP NULL,"
                      "  'privileges' SMALLINT NOT NULL,"
-                     "  CONSTRAINT 'users_pkey' PRIMARY KEY ('id'),"
+                     "  CONSTRAINT 'users_pkey' PRIMARY KEY ('id' AUTOINCREMENT),"
                      "  CONSTRAINT 'users_email_key' UNIQUE ('email'),"
                      "  CONSTRAINT 'users_username_key' UNIQUE ('username')"
                      "); ",
@@ -123,10 +123,10 @@ enum db_cb_resp vdb_query(const char *zSql, db_callback callback, void *a_resp,
   enum db_cb_resp res = db_no_result;
   size_t size = 0;
   int _count = 0;
-
   /* Prepare arguments */
 
-  if (sqlite3_prepare_v2(db, zSql, -1, &stmt, &pzTail) != SQLITE_OK) {
+  if ((sqlite3_prepare_v2(db, zSql, -1, &stmt, &pzTail)) != SQLITE_OK) {
+    fprintf(stderr, "SQL Error: %s\n", sqlite3_errmsg(db));
     return db_err;
   }
 
@@ -263,10 +263,10 @@ int32_t db_user_create(i_db_user_create *args) {
   enum db_cb_resp res;
   char zSql[] = "INSERT INTO users (username, password, email, "
                 "privileges, created_at, last_login)"
-                " VALUES (?, ?, ?, 1, NOW(), NOW()) RETURNING id";
+                " VALUES ($1, $2, $3, 1, date(), date()) RETURNING id";
 
-  res = db_query(zSql, db_user_create_cb, (void *)NULL, arg_types, args->uname,
-                 args->pass, args->email);
+  res = db_query(zSql, db_user_create_cb, (void *)&data, arg_types, args->uname,
+                 passHashed, args->email);
 
   return data.uid;
 }

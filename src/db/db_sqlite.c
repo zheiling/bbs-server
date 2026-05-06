@@ -84,7 +84,7 @@ int check_and_create_tables() {
   print_err(&err);
   res = sqlite3_exec(db,
                      "CREATE TABLE IF NOT EXISTS 'files' ("
-                     "  'id' SERIAL,"
+                     "  'id'INTEGER NOT NULL UNIQUE,"
                      "  'user_id' INTEGER NULL,"
                      "  'name' VARCHAR(255) NOT NULL,"
                      "  'size' BIGINT NOT NULL,"
@@ -92,7 +92,7 @@ int check_and_create_tables() {
                      "  'description' TEXT NULL,"
                      "  'permissions' INTEGER NULL,"
                      "  'hash' INTEGER NULL,"
-                     "  CONSTRAINT 'files_pkey' PRIMARY KEY ('id'),"
+                     "  CONSTRAINT 'files_pkey' PRIMARY KEY('id' AUTOINCREMENT),"
                      "  CONSTRAINT 'fk_user' FOREIGN KEY ('user_id')"
                      "  REFERENCES 'users' ('id') ON DELETE NO ACTION"
                      "  ON UPDATE NO ACTION"

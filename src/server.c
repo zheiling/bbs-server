@@ -2,6 +2,7 @@
 /* Copyright (c) 2026 Oleksandr Zhylin */
 
 #include "main.h"
+#include "file_p.h"
 #include "session.h"
 #include <arpa/inet.h>
 #include <errno.h>
@@ -12,6 +13,7 @@
 #include <sys/mman.h>
 #include <sys/select.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 void server_main_loop(server_data_t *s_d) {
@@ -63,8 +65,7 @@ void server_main_loop(server_data_t *s_d) {
       /* download/upload file */
       if (connections[i] != NULL && (connections[i]->state == OP_UPLOAD ||
                                      connections[i]->state == OP_DOWNLOAD)) {
-        if (connections[i]->fd > -1 &&
-            FD_ISSET(connections[i]->fd, &readfds)) {
+        if (connections[i]->fd > -1 && FD_ISSET(connections[i]->fd, &readfds)) {
           perform_session_action(connections[i], NULL, s_d);
         }
       } else if (connections[i] != NULL && FD_ISSET(i, &readfds)) {
@@ -93,7 +94,7 @@ char *get_welcome_mes(void) {
     perror(WELCOME_FILE_NAME);
     exit(7);
   }
-  int filesize = lseek(fd, 0, SEEK_END)+1;
+  int filesize = lseek(fd, 0, SEEK_END) + 1;
   lseek(fd, 0, SEEK_SET);
   char *welcome_message =
       mmap(NULL, filesize, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
@@ -102,7 +103,7 @@ char *get_welcome_mes(void) {
     close(fd);
     exit(5);
   }
-  welcome_message[filesize-1] = '\04';
+  welcome_message[filesize - 1] = '\04';
   close(fd);
   return welcome_message;
 }
@@ -142,5 +143,9 @@ void prepare_start(int argc, char *argv[]) {
   if (-1 == chdir(argv[1])) {
     perror(argv[1]);
     exit(2);
+  }
+
+  if (!directory_exists(STORAGE_FOLDER)) {
+    mkdir(STORAGE_FOLDER, 0700);
   }
 }

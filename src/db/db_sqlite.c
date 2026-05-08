@@ -234,7 +234,7 @@ int32_t db_user_auth(i_auth_t *c, o_auth_t *r) {
 
   if (res == db_success) {
     char u_buf[128];
-    sprintf(u_buf, "UPDATE users SET last_login = NOW() WHERE id = %u", r->uid);
+    sprintf(u_buf, "UPDATE users SET last_login = date() WHERE id = %u", r->uid);
     sqlite3_exec(db, u_buf, NULL, NULL, NULL);
     return r->uid;
   }
@@ -295,7 +295,7 @@ int32_t db_save_file(session *s) {
 
   res = db_query("INSERT INTO files(user_id, name, size, created_at, "
                  "hash, description, permissions) "
-                 "VALUES ($1, $2, $3, NOW(), $4, $5, $6) "
+                 "VALUES ($1, $2, $3, date(), $4, $5, $6) "
                  "RETURNING id",
                  db_save_file_cb, &resp_data, arg_types, s->uid, sfP->name,
                  sfP->size, sfP->hash,

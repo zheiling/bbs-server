@@ -6,6 +6,7 @@
 #include <db.h>
 #include <endian.h>
 #include <openssl/sha.h>
+#include <signal.h>
 #include <sqlite3.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -40,6 +41,16 @@ enum db_arg_type {
 
 typedef enum db_cb_resp (*db_callback)(sqlite3_stmt *stmt, void *resp);
 
+const char message[] = "The program is closing!\n";
+
+#define SIG130 130
+
+void sigterm_handler(int s) {
+  signal(SIGINT, sigterm_handler);
+  write(STDOUT_FILENO, message, sizeof(message) - 1);
+  /* sqlite3_close_v2(db); */
+}
+
 void print_err(char **err) {
   if (*err != NULL) {
     printf("%s\n", *err);
@@ -52,20 +63,21 @@ int check_and_create_tables() {
   int res = 0;
   char *err = NULL;
 
-  res = sqlite3_exec(db,
-                     "CREATE TABLE IF NOT EXISTS 'users' ("
-                     "  'id' INTEGER NOT NULL UNIQUE,"
-                     "  'username' VARCHAR(50) NOT NULL UNIQUE,"
-                     "  'password' CHARACTER(64) NOT NULL,"
-                     "  'email' VARCHAR(255) NOT NULL UNIQUE,"
-                     "  'created_at' TIMESTAMP NOT NULL,"
-                     "  'last_login' TIMESTAMP NULL,"
-                     "  'privileges' SMALLINT NOT NULL,"
-                     "  CONSTRAINT 'users_pkey' PRIMARY KEY ('id' AUTOINCREMENT),"
-                     "  CONSTRAINT 'users_email_key' UNIQUE ('email'),"
-                     "  CONSTRAINT 'users_username_key' UNIQUE ('username')"
-                     "); ",
-                     NULL, NULL, &err);
+  res =
+      sqlite3_exec(db,
+                   "CREATE TABLE IF NOT EXISTS 'users' ("
+                   "  'id' INTEGER NOT NULL UNIQUE,"
+                   "  'username' VARCHAR(50) NOT NULL UNIQUE,"
+                   "  'password' CHARACTER(64) NOT NULL,"
+                   "  'email' VARCHAR(255) NOT NULL UNIQUE,"
+                   "  'created_at' TIMESTAMP NOT NULL,"
+                   "  'last_login' TIMESTAMP NULL,"
+                   "  'privileges' SMALLINT NOT NULL,"
+                   "  CONSTRAINT 'users_pkey' PRIMARY KEY ('id' AUTOINCREMENT),"
+                   "  CONSTRAINT 'users_email_key' UNIQUE ('email'),"
+                   "  CONSTRAINT 'users_username_key' UNIQUE ('username')"
+                   "); ",
+                   NULL, NULL, &err);
 
   print_err(&err);
   res = sqlite3_exec(db,
@@ -82,27 +94,29 @@ int check_and_create_tables() {
                      ");",
                      NULL, NULL, &err);
   print_err(&err);
-  res = sqlite3_exec(db,
-                     "CREATE TABLE IF NOT EXISTS 'files' ("
-                     "  'id'INTEGER NOT NULL UNIQUE,"
-                     "  'user_id' INTEGER NULL,"
-                     "  'name' VARCHAR(255) NOT NULL,"
-                     "  'size' BIGINT NOT NULL,"
-                     "  'created_at' DATE NOT NULL,"
-                     "  'description' TEXT NULL,"
-                     "  'permissions' INTEGER NULL,"
-                     "  'hash' INTEGER NULL,"
-                     "  CONSTRAINT 'files_pkey' PRIMARY KEY('id' AUTOINCREMENT),"
-                     "  CONSTRAINT 'fk_user' FOREIGN KEY ('user_id')"
-                     "  REFERENCES 'users' ('id') ON DELETE NO ACTION"
-                     "  ON UPDATE NO ACTION"
-                     ");",
-                     NULL, NULL, &err);
+  res =
+      sqlite3_exec(db,
+                   "CREATE TABLE IF NOT EXISTS 'files' ("
+                   "  'id'INTEGER NOT NULL UNIQUE,"
+                   "  'user_id' INTEGER NULL,"
+                   "  'name' VARCHAR(255) NOT NULL,"
+                   "  'size' BIGINT NOT NULL,"
+                   "  'created_at' DATE NOT NULL,"
+                   "  'description' TEXT NULL,"
+                   "  'permissions' INTEGER NULL,"
+                   "  'hash' INTEGER NULL,"
+                   "  CONSTRAINT 'files_pkey' PRIMARY KEY('id' AUTOINCREMENT),"
+                   "  CONSTRAINT 'fk_user' FOREIGN KEY ('user_id')"
+                   "  REFERENCES 'users' ('id') ON DELETE NO ACTION"
+                   "  ON UPDATE NO ACTION"
+                   ");",
+                   NULL, NULL, &err);
   print_err(&err);
   return res;
 }
 
 int init_db_connection(void) {
+  signal(SIGINT, sigterm_handler);
   int res = sqlite3_open("db.sqlite", &db);
   char *err = NULL;
   if (!res) {
@@ -111,6 +125,8 @@ int init_db_connection(void) {
 
   return 0;
 }
+
+int close_connection(void) { return sqlite3_close_v2(db); }
 
 // === /* BASE FUNCTIONS */ =========================================
 
@@ -234,7 +250,8 @@ int32_t db_user_auth(i_auth_t *c, o_auth_t *r) {
 
   if (res == db_success) {
     char u_buf[128];
-    sprintf(u_buf, "UPDATE users SET last_login = date() WHERE id = %u", r->uid);
+    sprintf(u_buf, "UPDATE users SET last_login = date() WHERE id = %u",
+            r->uid);
     sqlite3_exec(db, u_buf, NULL, NULL, NULL);
     return r->uid;
   }

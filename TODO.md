@@ -7,8 +7,7 @@
 - [x] Switch to SQLite
 - [ ] Close the DB correctly in any quit case (also by SIGTERM)
 - [ ] Get rid of unsigned integers
-- [ ] Check registration
-- [ ] Common functions for both DBs, only db_query should be different
+- [x] Check registration
 - [x] Auto create a database when one is missing.
 
 ## Features

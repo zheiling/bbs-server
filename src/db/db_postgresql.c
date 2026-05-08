@@ -3,8 +3,9 @@
 
 /* TODO: variadic function for preparing parameters */
 
-#include <db.h>
 #include "../main.h"
+#include "db_common.h"
+#include <db.h>
 #include <endian.h>
 #include <fcntl.h>
 #include <libpq-fe.h>
@@ -16,7 +17,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "db_common.h"
 
 #define UNUSED(x) (void)(x)
 #define Q_LEN 128
@@ -80,6 +80,8 @@ static void processNotice(void *arg, const char *message) {
 
   // do nothing
 }
+
+int close_connection(void) { return 0; };
 
 int init_db_connection() {
   // TODO: get from external configs
@@ -169,7 +171,7 @@ int32_t db_user_create(i_db_user_create *args) {
 
   /* Check email */
   res = PQexecParams(conn, "SELECT id FROM users WHERE email=$1", 1, NULL,
-                     paramValues+2, paramLengths+2, NULL, TEXT);
+                     paramValues + 2, paramLengths + 2, NULL, TEXT);
 
   if (PQresultStatus(res) != PGRES_TUPLES_OK && !PQntuples(res))
     return exit_query_2(-1);
@@ -211,7 +213,7 @@ int32_t db_save_file(session *s) {
   paramValues[1] = sf->name;
   paramValues[2] = (char *)&size_n;
   paramValues[3] = (char *)&hash_n;
-    if (sf->description != NULL) {
+  if (sf->description != NULL) {
     paramValues[4] = sf->description;
   } else {
     paramValues[4] = empty_str;
@@ -228,7 +230,7 @@ int32_t db_save_file(session *s) {
     paramLengths[4] = 0;
   }
   paramLengths[5] = sizeof(int32_t);
-  
+
   paramFormats[0] = BIN;
   paramFormats[1] = TEXT;
   paramFormats[2] = BIN;

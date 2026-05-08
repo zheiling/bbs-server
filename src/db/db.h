@@ -53,4 +53,5 @@ s_file_t *db_get_file(i_get_file_db *arg);
 uint64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
                            uint64_t *full_count);
 int32_t db_user_create(i_db_user_create *);
+int close_connection(void);
 #endif

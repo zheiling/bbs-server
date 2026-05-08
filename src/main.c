@@ -16,5 +16,6 @@ int main(int argc, char *argv[]) {
   /* TODO: display server port */
   printf("Server is started!\n");
   server_main_loop(&server_data);
+  close_connection();
   return 0;
 }

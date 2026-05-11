@@ -7,8 +7,8 @@
 #include <stdint.h>
 void clear_list(fl_t *start);
 typedef struct {
-    uint32_t page;
-    uint32_t limit;
+    int32_t page;
+    int32_t limit;
     char *name;
 } i_file_list_t;
 void file_list(session *, server_data_t *, i_file_list_t *l_args);

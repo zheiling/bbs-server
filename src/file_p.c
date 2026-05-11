@@ -46,7 +46,7 @@ void file_list(session *sess, server_data_t *s_d, i_file_list_t *f_args) {
   fl_t *fl_start, *fl_current;
   char item_h[256];
   i_get_files_db args;
-  uint64_t full_count, count, pages_count;
+  int32_t full_count, count, pages_count;
 
   fl_start = NULL;
   fl_current = NULL;
@@ -125,7 +125,7 @@ int directory_exists(const char *path) {
   return S_ISDIR(info.st_mode); // true if it is a directory
 }
 
-void extract_names_from_hash(uint32_t file_hash, char *dirname, char *fname) {
+void extract_names_from_hash(int32_t file_hash, char *dirname, char *fname) {
   char hashed_full_name[9];
   sprintf(hashed_full_name, "%08x", file_hash);
   strncpy(dirname, hashed_full_name, 2);
@@ -142,7 +142,7 @@ int32_t file_send_prepare(session *sess, char *line, server_data_t *s_d) {
   char hashed_dir_name[3];
   char hashed_name[7];
   char err_mes[256];
-  uint32_t mlen;
+  int32_t mlen;
 
   char *name_begin = strchr(line, '[') + 1;
   char *name_end = strrchr(line, ']');

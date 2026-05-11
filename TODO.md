@@ -1,15 +1,14 @@
-# Development plans
-
-- [ ] Remove file when error while saving the data in DB
-
 ## Tasks
 
 - [x] Switch to SQLite
-- [ ] Close the DB correctly in any quit case (also by SIGTERM)
-  process signals through pselect
-- [ ] Get rid of unsigned integers
+- [x] Close the DB correctly in any quit case (also by SIGTERM)
+- [x] Get rid of unsigned integers
 - [x] Check registration
 - [x] Auto create a database when one is missing.
+
+# Development plans
+
+- [ ] Remove file when error while saving the data in DB
 
 ## Features
 

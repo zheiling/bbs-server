@@ -15,14 +15,14 @@ typedef struct {
 
 typedef struct {
   char privileges;
-  uint32_t uid;
+  int32_t uid;
 } o_auth_t;
 
 /* Get file */
 
 typedef struct {
-  uint32_t id;
-  uint32_t user_id;
+  int32_t id;
+  int32_t user_id;
   char name[FILE_NAME_LEN];
 } i_get_file_db;
 
@@ -30,10 +30,10 @@ enum sort_direction { ASC, DESC };
 enum sort_by { ID, NAME, CREATED_AT, USER_ID };
 
 typedef struct {
-  uint32_t user_id; // TODO: implement
+  int32_t user_id; // TODO: implement
   char search_str[FILE_NAME_LEN];    // TODO: implement
-  uint32_t limit;
-  uint32_t offset;
+  int32_t limit;
+  int32_t offset;
   enum sort_by sort_by;
   enum sort_direction sort_direction;
 } i_get_files_db;
@@ -50,8 +50,8 @@ int32_t init_db_connection();
 int32_t db_save_file(session *s);
 int32_t db_user_auth(i_auth_t *credentials, o_auth_t *response);
 s_file_t *db_get_file(i_get_file_db *arg);
-uint64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
-                           uint64_t *full_count);
+int64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
+                           int64_t *full_count);
 int32_t db_user_create(i_db_user_create *);
-int close_connection(void);
+int db_close_connection(void);
 #endif

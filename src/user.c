@@ -34,7 +34,7 @@ int32_t create_user(session *sess, char *line) {
   return 0;
 }
 
-uint32_t process_user_name(char *line, session *sess) {
+int32_t process_user_name(char *line, session *sess) {
   if (!strncmp(line, "exit", sizeof "exit")) {
     sess->state = ERR;
     sess->reason = EXIT;

@@ -54,9 +54,9 @@ typedef struct {
   char permissions;
   size_t size;
   size_t rest;
-  uint32_t hash;
-  uint32_t id;
-  uint32_t owner_id;
+  int32_t hash;
+  int32_t id;
+  int32_t owner_id;
 } s_file_t;
 
 typedef struct fl_t {
@@ -64,10 +64,10 @@ typedef struct fl_t {
   char *description;
   char *owner;
   char permissions;
-  uint32_t owner_id;
-  uint32_t hash;
+  int32_t owner_id;
+  int32_t hash;
   size_t size;
-  uint32_t id;
+  int32_t id;
   struct fl_t *next;
 } fl_t;
 
@@ -75,12 +75,12 @@ typedef struct session {
   unsigned long from_ip;
   unsigned short from_port;
   char buf[INBUFSIZE];
-  uint32_t buf_used;
+  int32_t buf_used;
   enum sess_states state;
   enum error_reason reason;
   char privileges;
   char *uname;
-  uint32_t uid;
+  int32_t uid;
   int32_t fd;
   int32_t sd; /* session descriptor */
   s_file_t *file;

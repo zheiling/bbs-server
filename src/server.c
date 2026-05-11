@@ -1,13 +1,15 @@
 /* SPDX-License-Identifier: MIT */
 /* Copyright (c) 2026 Oleksandr Zhylin */
 
-#include "main.h"
+#include "db.h"
 #include "file_p.h"
+#include "main.h"
 #include "session.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -16,10 +18,25 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+volatile sig_atomic_t shutdown_requested = 0;
+volatile sig_atomic_t signal_received = 0;
+
+void term_int_handler(int s) { 
+  shutdown_requested = 1; 
+  signal_received = s;
+}
+
 void server_main_loop(server_data_t *s_d) {
   fd_set readfds;
   int i, sr;
+  sigset_t mask, orig_mask;
 
+  signal(SIGINT, term_int_handler);
+  signal(SIGTERM, term_int_handler);
+  sigemptyset(&mask);
+  sigaddset(&mask, SIGINT);
+  sigaddset(&mask, SIGTERM);
+  sigprocmask(SIG_BLOCK, &mask, &orig_mask);
   session *connections[MAX_CONNECTIONS];
 
   for (i = 0; i < MAX_CONNECTIONS; i++) {
@@ -48,7 +65,13 @@ void server_main_loop(server_data_t *s_d) {
       }
     }
 
-    sr = select(maxfd + 1, &readfds, NULL, NULL, NULL);
+    sr = pselect(maxfd + 1, &readfds, NULL, NULL, NULL, &orig_mask);
+
+    if (shutdown_requested != 0) {
+      db_close_connection();
+      printf("\nStopping the server...\n");
+      exit(signal_received);
+    }
 
     if (sr == -1) {
       perror("select");

@@ -17,7 +17,7 @@
 void process_client_command(char *line, session *sess, server_data_t *s_d) {
   char arg_1[32];
   char arg_2[32];
-  uint32_t res;
+  int32_t res;
   i_file_list_t fl_args;
   fl_args.name = NULL;
   int32_t ret = 0;

@@ -6,7 +6,6 @@
 #include <db.h>
 #include <endian.h>
 #include <openssl/sha.h>
-#include <signal.h>
 #include <sqlite3.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -32,24 +31,12 @@ enum db_arg_type {
   db_str,
   db_int,
   db_int64,
-  db_uint,
-  db_uint64,
   db_blob,
   db_size, /* size for subsequent arg */
   db_end
 };
 
 typedef enum db_cb_resp (*db_callback)(sqlite3_stmt *stmt, void *resp);
-
-const char message[] = "The program is closing!\n";
-
-#define SIG130 130
-
-void sigterm_handler(int s) {
-  signal(SIGINT, sigterm_handler);
-  write(STDOUT_FILENO, message, sizeof(message) - 1);
-  /* sqlite3_close_v2(db); */
-}
 
 void print_err(char **err) {
   if (*err != NULL) {
@@ -116,7 +103,6 @@ int check_and_create_tables() {
 }
 
 int init_db_connection(void) {
-  signal(SIGINT, sigterm_handler);
   int res = sqlite3_open("db.sqlite", &db);
   char *err = NULL;
   if (!res) {
@@ -126,7 +112,7 @@ int init_db_connection(void) {
   return 0;
 }
 
-int close_connection(void) { return sqlite3_close_v2(db); }
+int db_close_connection(void) { return sqlite3_close_v2(db); }
 
 // === /* BASE FUNCTIONS */ =========================================
 
@@ -158,12 +144,6 @@ enum db_cb_resp vdb_query(const char *zSql, db_callback callback, void *a_resp,
       break;
     case db_int64:
       sqlite3_bind_int64(stmt, i + 1, va_arg(va_list, int64_t));
-      break;
-    case db_uint:
-      sqlite3_bind_int(stmt, i + 1, va_arg(va_list, unsigned int));
-      break;
-    case db_uint64:
-      sqlite3_bind_int64(stmt, i + 1, va_arg(va_list, uint64_t));
       break;
     case db_blob:
       if (size > 0) {
@@ -442,8 +422,8 @@ enum db_cb_resp db_get_files_count_db(sqlite3_stmt *stmt, void *resp) {
   return db_success;
 }
 
-uint64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
-                           uint64_t *full_count) {
+int64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
+                           int64_t *full_count) {
   fl_t *fl_current = NULL;
   char zSql[512];
   struct db_get_files_data data = {.fl_current = &fl_current,

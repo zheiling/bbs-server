@@ -81,7 +81,7 @@ static void processNotice(void *arg, const char *message) {
   // do nothing
 }
 
-int close_connection(void) { return 0; };
+int db_close_connection(void) { return 0; };
 
 int init_db_connection() {
   // TODO: get from external configs
@@ -152,7 +152,7 @@ int32_t db_user_create(i_db_user_create *args) {
 
   paramLengths[0] = strlen(args->uname);
   paramLengths[2] = strlen(args->email);
-  uint32_t ret_value;
+  int32_t ret_value;
 
   string_to_SHA256(args->pass, passHashed);
   paramValues[1] = passHashed;
@@ -205,7 +205,7 @@ int32_t db_save_file(session *s) {
   char empty_str[] = "";
 
   int32_t uid_n = htonl(s->uid);
-  uint64_t size_n = htobe64(sf->size);
+  size_t size_n = htobe64(sf->size);
   int32_t hash_n = htonl(sf->hash);
   int32_t perm_n = htonl(sf->permissions);
 
@@ -222,7 +222,7 @@ int32_t db_save_file(session *s) {
 
   paramLengths[0] = sizeof(int32_t);
   paramLengths[1] = strlen(sf->name);
-  paramLengths[2] = sizeof(uint64_t);
+  paramLengths[2] = sizeof(int64_t);
   paramLengths[3] = sizeof(int32_t);
   if (sf->description != NULL) {
     paramLengths[4] = strlen(sf->description);
@@ -259,7 +259,7 @@ s_file_t *db_get_file(i_get_file_db *arg) {
   char value[64] = "";
   const char *paramValues[1];
   char query[512];
-  uint32_t q_len = 0;
+  int32_t q_len = 0;
 
   if (arg->id) {
     strcpy(s_field, "id");
@@ -306,8 +306,8 @@ s_file_t *db_get_file(i_get_file_db *arg) {
   return sf;
 }
 
-uint64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
-                           uint64_t *full_count) {
+int64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
+                           int64_t *full_count) {
   fl_t *fl_current;
   char query[512];
   char sort_by[16] = "id";
@@ -316,9 +316,9 @@ uint64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
   int paramLengths[3];
   int paramFormats[3];
   int i;
-  uint64_t count;
-  uint64_t n_limit = htobe64(arg->limit);
-  uint64_t n_offset = htobe64(arg->offset);
+  int64_t count;
+  int64_t n_limit = htobe64(arg->limit);
+  int64_t n_offset = htobe64(arg->offset);
   bool by_name = strlen(arg->search_str) > 0;
   int32_t params_num = 3;
 

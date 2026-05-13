@@ -50,8 +50,8 @@ int32_t init_db_connection();
 int32_t db_save_file(session *s);
 int32_t db_user_auth(i_auth_t *credentials, o_auth_t *response);
 s_file_t *db_get_file(i_get_file_db *arg);
-int64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
-                           int64_t *full_count);
+int32_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
+                           int32_t *full_count);
 int32_t db_user_create(i_db_user_create *);
 int db_close_connection(void);
 #endif

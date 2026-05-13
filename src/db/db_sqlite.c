@@ -422,8 +422,8 @@ enum db_cb_resp db_get_files_count_db(sqlite3_stmt *stmt, void *resp) {
   return db_success;
 }
 
-int64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
-                           int64_t *full_count) {
+int32_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
+                           int32_t *full_count) {
   fl_t *fl_current = NULL;
   char zSql[512];
   struct db_get_files_data data = {.fl_current = &fl_current,

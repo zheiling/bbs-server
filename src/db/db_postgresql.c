@@ -306,8 +306,8 @@ s_file_t *db_get_file(i_get_file_db *arg) {
   return sf;
 }
 
-int64_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
-                           int64_t *full_count) {
+int32_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
+                           int32_t *full_count) {
   fl_t *fl_current;
   char query[512];
   char sort_by[16] = "id";

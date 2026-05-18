@@ -149,10 +149,10 @@ void perform_session_action(session *sess, char *line, server_data_t *s_d) {
     process_client_command(line, sess, s_d);
     break;
   case OP_DOWNLOAD:
-    file_load(sess, F_DOWNLOAD);
+    file_download(sess);
     break;
   case OP_UPLOAD:
-    file_load(sess, F_UPLOAD);
+    file_upload(sess);
     break;
   case OP_UPLOAD_DESCRIPTION:
     res = file_upload_description(sess, line, s_d);

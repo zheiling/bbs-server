@@ -197,6 +197,7 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
   sess->file->path = malloc(sizeof(STORAGE_FOLDER) + 2 + 9);
   sess->file->permissions = (char)perm;
   sess->file->description = NULL;
+  sess->file->package_rest = 0;
   strncpy(sess->file->name, name_begin, name_len);
   sess->file->name[name_len] = 0;
 
@@ -286,19 +287,15 @@ void clear_file_from_sess(session *s) {
   s->file = NULL;
 }
 
-void file_load(session *sess, enum f_actions f_action) {
-  int source_d = f_action == F_DOWNLOAD ? sess->fd : sess->sd;
-  int dest_d = f_action == F_DOWNLOAD ? sess->sd : sess->fd;
+/* download to the client */
+void file_download(session *sess) {
+  int source_d = sess->fd;
+  int dest_d = sess->sd;
   char buf[INBUFSIZE];
   int rlen = read(source_d, buf, INBUFSIZE);
   if (rlen == 0) {
     if (sess->file->rest) {
-      if (f_action == F_DOWNLOAD) {
-        fprintf(stderr, "Error downloading file %s!\n", sess->file->name);
-      } else {
-        fprintf(stderr, "Error uploading file %s!\n", sess->file->name);
-        unlink(sess->file->path); /* remove file */
-      }
+      fprintf(stderr, "Error downloading file %s!\n", sess->file->name);
       clear_file_from_sess(sess);
     }
     sess->state = OP_WAIT;
@@ -307,15 +304,61 @@ void file_load(session *sess, enum f_actions f_action) {
   write(dest_d, buf, rlen);
   sess->file->rest -= rlen;
   if (!sess->file->rest) {
-    if (f_action == F_DOWNLOAD) {
-      printf("File %s is downloaded from the server\n", sess->file->name);
+    printf("File %s is downloaded from the server\n", sess->file->name);
+    clear_file_from_sess(sess);
+    sess->state = OP_WAIT;
+  }
+}
+
+/* upload to the server */
+void file_upload(session *sess) {
+  int source_d = sess->sd;
+  int dest_d = sess->fd;
+  char buf[INBUFSIZE];
+  int rlen = read(source_d, buf, INBUFSIZE);
+  if (rlen == 0) {
+    if (sess->file->rest) {
+      fprintf(stderr, "Error uploading file %s!\n", sess->file->name);
+      unlink(sess->file->path); /* remove file */
       clear_file_from_sess(sess);
-    } else {
-      printf("File %s is uploaded to the server\n", sess->file->name);
-      session_send_string(sess, "finished\n");
-      if (db_save_file(sess)) {
-        clear_file_from_sess(sess);
+    }
+    sess->state = OP_WAIT;
+    return;
+  }
+  if (sess->file->package_rest < rlen) {
+    write(dest_d, buf,  sess->file->package_rest);
+    s_file_pd_t *fpd = (s_file_pd_t *)buf + sess->file->package_rest;
+    switch (fpd->signal) {
+    case sig_continue:
+      sess->file->package_rest = fpd->package_size;
+      rlen -= sizeof(s_file_pd_t);
+      if (rlen > 0) {
+        write(dest_d, buf + sizeof(s_file_pd_t), rlen);
       }
+      break;
+    case sig_cancel:
+      fprintf(stderr, "Upload of %s is cancelled!\n", sess->file->name);
+      unlink(sess->file->path); /* remove file */
+      clear_file_from_sess(sess);
+      sess->state = OP_WAIT;
+      return;
+    case sig_finish:
+      /* TODO: implement */
+    case sig_pause:
+      /* TODO: implement */
+      break;
+    }
+  } else {
+    write(dest_d, buf, rlen);
+  }
+
+  sess->file->rest -= rlen;
+  sess->file->package_rest -= rlen;
+  if (!sess->file->rest) {
+    printf("File %s is uploaded to the server\n", sess->file->name);
+    session_send_string(sess, "finished\n");
+    if (db_save_file(sess)) {
+      clear_file_from_sess(sess);
     }
     sess->state = OP_WAIT;
   }

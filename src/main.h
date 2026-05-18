@@ -54,10 +54,23 @@ typedef struct {
   char permissions;
   size_t size;
   size_t rest;
+  size_t package_rest;
   int32_t hash;
   int32_t id;
   int32_t owner_id;
 } s_file_t;
+
+enum package_signal {
+  sig_continue,
+  sig_cancel,
+  sig_finish,
+  sig_pause
+};
+
+typedef struct {
+  enum package_signal signal;
+  size_t package_size;
+} s_file_pd_t; /* file package descriptor */
 
 typedef struct fl_t {
   char *name;

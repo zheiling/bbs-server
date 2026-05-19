@@ -326,15 +326,19 @@ void file_upload(session *sess) {
     return;
   }
   if (sess->file->package_rest < rlen) {
-    write(dest_d, buf,  sess->file->package_rest);
-    s_file_pd_t *fpd = (s_file_pd_t *)buf + sess->file->package_rest;
+    write(dest_d, buf, sess->file->package_rest);
+    rlen -= sess->file->package_rest;
+    sess->file->rest -= sess->file->package_rest;
+    if (rlen == 0) return;
+    s_file_pd_t *fpd = (s_file_pd_t *) (buf + sess->file->package_rest);
     switch (fpd->signal) {
     case sig_continue:
-      sess->file->package_rest = fpd->package_size;
       rlen -= sizeof(s_file_pd_t);
       if (rlen > 0) {
-        write(dest_d, buf + sizeof(s_file_pd_t), rlen);
-      }
+        write(dest_d, buf + sess->file->package_rest + sizeof(s_file_pd_t), rlen);
+        sess->file->rest -= rlen;  
+      } 
+      sess->file->package_rest = fpd->package_size - rlen;
       break;
     case sig_cancel:
       fprintf(stderr, "Upload of %s is cancelled!\n", sess->file->name);
@@ -350,10 +354,10 @@ void file_upload(session *sess) {
     }
   } else {
     write(dest_d, buf, rlen);
+    sess->file->rest -= rlen;
+    sess->file->package_rest -= rlen;
   }
 
-  sess->file->rest -= rlen;
-  sess->file->package_rest -= rlen;
   if (!sess->file->rest) {
     printf("File %s is uploaded to the server\n", sess->file->name);
     session_send_string(sess, "finished\n");

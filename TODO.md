@@ -1,14 +1,9 @@
 ## Tasks
 
-- [x] Switch to SQLite
-- [x] Close the DB correctly in any quit case (also by SIGTERM)
-- [x] Get rid of unsigned integers
-- [x] Check registration
-- [x] Auto create a database when one is missing.
-
 # Development plans
 
 - [ ] Remove file when error while saving the data in DB
+- [ ] Show date in server log
 
 ## Features
 
@@ -25,3 +20,11 @@
 - [ ] Connection encryption
 - [ ] Advanced rights for files
 - [ ] Multithreading
+
+## Done
+
+- [x] Switch to SQLite
+- [x] Close the DB correctly in any quit case (also by SIGTERM)
+- [x] Get rid of unsigned integers
+- [x] Check registration
+- [x] Auto create a database when one is missing.

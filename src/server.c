@@ -5,6 +5,7 @@
 #include "file_p.h"
 #include "main.h"
 #include "session.h"
+#include "utils.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -21,8 +22,8 @@
 volatile sig_atomic_t shutdown_requested = 0;
 volatile sig_atomic_t signal_received = 0;
 
-void term_int_handler(int s) { 
-  shutdown_requested = 1; 
+void term_int_handler(int s) {
+  shutdown_requested = 1;
   signal_received = s;
 }
 
@@ -69,7 +70,7 @@ void server_main_loop(server_data_t *s_d) {
 
     if (shutdown_requested != 0) {
       db_close_connection();
-      printf("\nStopping the server...\n");
+      print_log(stdout, pl_info, "\nStopping the server...\n");
       exit(signal_received);
     }
 
@@ -80,7 +81,8 @@ void server_main_loop(server_data_t *s_d) {
 
     if (FD_ISSET(s_d->ls, &readfds)) {
       if (-1 == accept_client(s_d->ls, connections, s_d->welcome_message)) {
-        fprintf(stderr, "Can't accept connection, error: %d\n", errno);
+        print_log(stdout, pl_error, "Can't accept connection, error: %d\n",
+                  errno);
       }
     }
 
@@ -159,7 +161,7 @@ int start_server(void) {
 
 void prepare_start(int argc, char *argv[]) {
   if (argc != 2) {
-    fprintf(stderr, "Usage: %s <work_dir>\n", argv[0]);
+    print_log(stdout, pl_error, "Usage: %s <work_dir>\n", argv[0]);
     exit(1);
   }
 

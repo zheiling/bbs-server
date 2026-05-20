@@ -3,7 +3,7 @@
 # Development plans
 
 - [ ] Remove file when error while saving the data in DB
-- [ ] Show date in server log
+- [ ] Colorize server messages
 
 ## Features
 
@@ -27,4 +27,5 @@
 - [x] Close the DB correctly in any quit case (also by SIGTERM)
 - [x] Get rid of unsigned integers
 - [x] Check registration
-- [x] Auto create a database when one is missing.
+- [x] Auto create a database when one is missing
+- [x] Show date in server log

@@ -2,6 +2,7 @@
 /* Copyright (c) 2026 Oleksandr Zhylin */
 
 #include "../main.h"
+#include "../utils.h"
 #include "db_common.h"
 #include <db.h>
 #include <endian.h>
@@ -40,7 +41,7 @@ typedef enum db_cb_resp (*db_callback)(sqlite3_stmt *stmt, void *resp);
 
 void print_err(char **err) {
   if (*err != NULL) {
-    printf("%s\n", *err);
+    print_log(stdout, pl_error, "%s\n", *err);
     sqlite3_free(*err);
     *err = NULL;
   }
@@ -128,7 +129,7 @@ enum db_cb_resp vdb_query(const char *zSql, db_callback callback, void *a_resp,
   /* Prepare arguments */
 
   if ((sqlite3_prepare_v2(db, zSql, -1, &stmt, &pzTail)) != SQLITE_OK) {
-    fprintf(stderr, "SQL Error: %s\n", sqlite3_errmsg(db));
+    print_log(stdout, pl_error, "SQL Error: %s\n", sqlite3_errmsg(db));
     return db_err;
   }
 
@@ -150,7 +151,8 @@ enum db_cb_resp vdb_query(const char *zSql, db_callback callback, void *a_resp,
         sqlite3_bind_blob(stmt, i + 1, va_arg(va_list, void *), size, NULL);
         size = 0;
       } else {
-        fprintf(stderr, "SQL ERROR: Size for a blob must be specified!\n");
+        print_log(stdout, pl_error,
+                  "SQL ERROR: Size for a blob must be specified!\n");
         return db_err;
       }
       break;
@@ -353,7 +355,8 @@ s_file_t *db_get_file(i_get_file_db *arg) {
   } else if (strlen(arg->name)) {
     strcpy(s_field, "name");
   } else {
-    fprintf(stderr, "db_get_file: none of the args is specified!\n");
+    print_log(stdout, pl_error,
+              "db_get_file: none of the args is specified!\n");
     return NULL;
   }
 
@@ -423,7 +426,7 @@ enum db_cb_resp db_get_files_count_db(sqlite3_stmt *stmt, void *resp) {
 }
 
 int32_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
-                           int32_t *full_count) {
+                          int32_t *full_count) {
   fl_t *fl_current = NULL;
   char zSql[512];
   struct db_get_files_data data = {.fl_current = &fl_current,

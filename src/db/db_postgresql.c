@@ -4,6 +4,7 @@
 /* TODO: variadic function for preparing parameters */
 
 #include "../main.h"
+#include "../utils.h"
 #include "db_common.h"
 #include <db.h>
 #include <endian.h>
@@ -34,7 +35,7 @@ static void clearRes(void) {
 
 static int terminate(int code) {
   if (code != 0)
-    fprintf(stderr, "%s\n", PQerrorMessage(conn));
+    print_log(stdout, pl_error, "%s\n", PQerrorMessage(conn));
 
   if (res != NULL)
     PQclear(res);
@@ -47,7 +48,7 @@ static int terminate(int code) {
 
 static int exit_query(int code) {
   if (code != 0)
-    fprintf(stderr, "%s\n", PQerrorMessage(conn));
+    print_log(stdout, pl_error, "%s\n", PQerrorMessage(conn));
 
   if (res != NULL)
     PQclear(res);
@@ -57,7 +58,7 @@ static int exit_query(int code) {
 
 static int exit_query_2(int code) {
   if (code == 0)
-    fprintf(stderr, "%s\n", PQerrorMessage(conn));
+    print_log(stdout, pl_error, "%s\n", PQerrorMessage(conn));
 
   if (res != NULL)
     PQclear(res);
@@ -66,7 +67,7 @@ static int exit_query_2(int code) {
 }
 
 static void *exit_query_3(void *ptr) {
-  fprintf(stderr, "%s\n", PQerrorMessage(conn));
+  print_log(stdout, pl_error, "%s\n", PQerrorMessage(conn));
 
   if (res != NULL)
     PQclear(res);
@@ -99,8 +100,9 @@ int init_db_connection() {
   //   return terminate(2);
   // }
 
-  printf("Connection established! server version: %d, user: %s, db: %s\n",
-         server_ver, user, db_name);
+  print_log(stdout, pl_info,
+            "Connection established! server version: %d, user: %s, db: %s\n",
+            server_ver, user, db_name);
   return exit_query(0);
 }
 
@@ -271,7 +273,8 @@ s_file_t *db_get_file(i_get_file_db *arg) {
     strcpy(s_field, "user_id");
     sprintf(value, "%u", arg->user_id);
   } else {
-    fprintf(stderr, "db_get_file: none of the args is specified!\n");
+    print_log(stdout, pl_error,
+              "db_get_file: none of the args is specified!\n");
     return NULL;
   }
 
@@ -307,7 +310,7 @@ s_file_t *db_get_file(i_get_file_db *arg) {
 }
 
 int32_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,
-                           int32_t *full_count) {
+                          int32_t *full_count) {
   fl_t *fl_current;
   char query[512];
   char sort_by[16] = "id";

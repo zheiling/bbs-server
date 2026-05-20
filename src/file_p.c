@@ -4,6 +4,7 @@
 #include "file_p.h"
 #include "main.h"
 #include "session.h"
+#include "utils.h"
 #include <arpa/inet.h>
 #include <db.h>
 #include <errno.h>
@@ -162,7 +163,7 @@ int32_t file_send_prepare(session *sess, char *line, server_data_t *s_d) {
   file_d = open(sess->file->path, O_RDONLY);
 
   if (file_d == -1) {
-    fprintf(stdout, "Error opening file: %d\n", errno);
+    print_log(stdout, pl_error, "Error opening file: %d\n", errno);
     mlen = sprintf(err_mes, "Can't open file with id = %u\n", sess->file->id);
     write(sd, err_mes, mlen);
     return -2;
@@ -295,7 +296,8 @@ void file_download(session *sess) {
   int rlen = read(source_d, buf, INBUFSIZE);
   if (rlen == 0) {
     if (sess->file->rest) {
-      fprintf(stderr, "Error downloading file %s!\n", sess->file->name);
+      print_log(stdout, pl_error, "Error downloading file %s!\n",
+                sess->file->name);
       clear_file_from_sess(sess);
     }
     sess->state = OP_WAIT;
@@ -304,7 +306,8 @@ void file_download(session *sess) {
   write(dest_d, buf, rlen);
   sess->file->rest -= rlen;
   if (!sess->file->rest) {
-    printf("File %s is downloaded from the server\n", sess->file->name);
+    print_log(stdout, pl_info, "File %s is downloaded from the server\n",
+              sess->file->name);
     clear_file_from_sess(sess);
     sess->state = OP_WAIT;
   }
@@ -318,7 +321,8 @@ void file_upload(session *sess) {
   int rlen = read(source_d, buf, INBUFSIZE);
   if (rlen == 0) {
     if (sess->file->rest) {
-      fprintf(stderr, "Error uploading file %s!\n", sess->file->name);
+      print_log(stdout, pl_error, "Error uploading file %s!\n",
+                sess->file->name);
       unlink(sess->file->path); /* remove file */
       clear_file_from_sess(sess);
     }
@@ -329,19 +333,22 @@ void file_upload(session *sess) {
     write(dest_d, buf, sess->file->package_rest);
     rlen -= sess->file->package_rest;
     sess->file->rest -= sess->file->package_rest;
-    if (rlen == 0) return;
-    s_file_pd_t *fpd = (s_file_pd_t *) (buf + sess->file->package_rest);
+    if (rlen == 0)
+      return;
+    s_file_pd_t *fpd = (s_file_pd_t *)(buf + sess->file->package_rest);
     switch (fpd->signal) {
     case sig_continue:
       rlen -= sizeof(s_file_pd_t);
       if (rlen > 0) {
-        write(dest_d, buf + sess->file->package_rest + sizeof(s_file_pd_t), rlen);
-        sess->file->rest -= rlen;  
-      } 
+        write(dest_d, buf + sess->file->package_rest + sizeof(s_file_pd_t),
+              rlen);
+        sess->file->rest -= rlen;
+      }
       sess->file->package_rest = fpd->package_size - rlen;
       break;
     case sig_cancel:
-      fprintf(stderr, "Upload of %s is cancelled!\n", sess->file->name);
+      print_log(stdout, pl_error, "Upload of %s is cancelled!\n",
+                sess->file->name);
       unlink(sess->file->path); /* remove file */
       clear_file_from_sess(sess);
       sess->state = OP_WAIT;
@@ -359,7 +366,8 @@ void file_upload(session *sess) {
   }
 
   if (!sess->file->rest) {
-    printf("File %s is uploaded to the server\n", sess->file->name);
+    print_log(stdout, pl_info, "File %s is uploaded to the server\n",
+              sess->file->name);
     session_send_string(sess, "finished\n");
     if (db_save_file(sess)) {
       clear_file_from_sess(sess);

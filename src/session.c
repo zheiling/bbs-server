@@ -3,11 +3,12 @@
 
 #include "session.h"
 #include "client.h"
-#include <db.h>
 #include "file_p.h"
 #include "main.h"
 #include "user.h"
+#include "utils.h"
 #include <arpa/inet.h>
+#include <db.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <stdarg.h>
@@ -31,8 +32,8 @@ int32_t accept_client(int ls, session *connections[], char *wm) {
     return -1;
   }
   session *sess = make_new_session(sd, &addr, wm);
-  fprintf(stdout, "New connection: %s:%u\n", inet_ntoa(addr.sin_addr),
-          ntohs(addr.sin_port));
+  print_log(stdout, pl_info, "New connection: %s:%u\n",
+            inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
   connections[sd] = sess;
   return 0;
 }
@@ -158,7 +159,8 @@ void perform_session_action(session *sess, char *line, server_data_t *s_d) {
     res = file_upload_description(sess, line, s_d);
     if (res) {
       if (db_save_file(sess)) {
-        session_send_string(sess, "File \"%s\" is saved!\04\n", sess->file->name);
+        session_send_string(sess, "File \"%s\" is saved!\04\n",
+                            sess->file->name);
         clear_file_from_sess(sess);
         sess->state = OP_WAIT;
       } else {

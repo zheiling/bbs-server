@@ -10,6 +10,7 @@ int query_extract_from_buf(session *sess, char **output_line);
 int session_do_read(session *sess, char **read_str);
 void perform_session_action(session *sess, char *line, server_data_t *s_d);
 void close_session(session *connections[], int sd);
+int query_extract_from_buf_2(char *buf, int *buf_used, char **output_line);
 /* session *make_new_session(int fd, struct sockaddr_in *from, char *wm); */
 /* int query_extract_from_sess(session *sess, char **output_line); */
 #endif

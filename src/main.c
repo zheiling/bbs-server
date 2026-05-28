@@ -5,7 +5,6 @@
 #include "server.h"
 #include "utils.h"
 #include <db.h>
-#include <stdio.h>
 
 /* *** MAIN *** */
 int main(int argc, char *argv[]) {

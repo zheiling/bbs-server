@@ -293,7 +293,21 @@ void file_download(session *sess) {
   int source_d = sess->fd;
   int dest_d = sess->sd;
   char buf[INBUFSIZE];
-  int rlen = read(source_d, buf, INBUFSIZE);
+  int rlen = read(sess->sd, buf, INBUFSIZE);
+  if (rlen > 0) {
+    char *line;
+    query_extract_from_buf_2(buf, &rlen, &line);
+    if (!strcmp(line, "cancel\n")) {
+      free(line);
+      /* replace session buffer with the rest of the local buffer */
+      memcpy(sess->buf, buf, rlen);
+      sess->buf_used = rlen;
+      clear_file_from_sess(sess);
+      sess->state = OP_WAIT;
+      return;
+    }
+  }
+  rlen = read(source_d, buf, INBUFSIZE);
   if (rlen == 0) {
     if (sess->file->rest) {
       print_log(stdout, pl_error, "Error downloading file %s!\n",

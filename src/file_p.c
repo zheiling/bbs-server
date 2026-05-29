@@ -23,6 +23,7 @@
 #include <sys/statvfs.h>
 #include <sys/syslog.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 #include <sys/un.h>
 #include <unistd.h>
 
@@ -293,21 +294,23 @@ void file_download(session *sess) {
   int source_d = sess->fd;
   int dest_d = sess->sd;
   char buf[INBUFSIZE];
-  int rlen = read(sess->sd, buf, INBUFSIZE);
-  if (rlen > 0) {
+  struct iovec iov = {.iov_base = buf, .iov_len = INBUFSIZE};
+  /* uses GNU library */
+  ssize_t ret = preadv2(sess->fd, &iov, 1, 0, RWF_NOWAIT);
+  if (ret > 0) {
     char *line;
-    query_extract_from_buf_2(buf, &rlen, &line);
+    query_extract_from_buf_2(buf, &ret, &line);
     if (!strcmp(line, "cancel\n")) {
       free(line);
       /* replace session buffer with the rest of the local buffer */
-      memcpy(sess->buf, buf, rlen);
-      sess->buf_used = rlen;
+      memcpy(sess->buf, buf, ret);
+      sess->buf_used = ret;
       clear_file_from_sess(sess);
       sess->state = OP_WAIT;
       return;
     }
   }
-  rlen = read(source_d, buf, INBUFSIZE);
+  int rlen = read(source_d, buf, INBUFSIZE);
   if (rlen == 0) {
     if (sess->file->rest) {
       print_log(stdout, pl_error, "Error downloading file %s!\n",

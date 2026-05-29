@@ -31,11 +31,6 @@ int32_t accept_client(int ls, session *connections[], char *wm) {
     perror("accept");
     return -1;
   }
-  /* set non-blocking behaviour */
-  int flags = fcntl(sd, F_GETFL, 0);
-  flags = flags | O_NONBLOCK;
-  fcntl(sd, F_SETFL, flags);
-  
   session *sess = make_new_session(sd, &addr, wm);
   print_log(stdout, pl_info, "New connection: %s:%u\n",
             inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
@@ -140,7 +135,7 @@ int query_extract_from_buf(session *sess, char **output_line) {
   return pos + 1;
 }
 
-int query_extract_from_buf_2(char *buf, int *buf_used, char **output_line) {
+int query_extract_from_buf_2(char *buf, ssize_t *buf_used, char **output_line) {
   char *line;
   int pos = -1;
   int _buf_used = *buf_used;

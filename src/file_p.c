@@ -301,11 +301,15 @@ void file_download(session *sess) {
     char *line;
     query_extract_from_buf_2(buf, &ret, &line);
     if (!strcmp(line, "cancel\n")) {
+      FILE* sd_fileptr = fdopen(sess->fd, "w");
+      fflush(sd_fileptr);
+      fclose(sd_fileptr);
       free(line);
       /* replace session buffer with the rest of the local buffer */
       memcpy(sess->buf, buf, ret);
       sess->buf_used = ret;
       clear_file_from_sess(sess);
+      session_send_string(sess, "ready\n");
       sess->state = OP_WAIT;
       return;
     }

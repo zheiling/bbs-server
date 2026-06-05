@@ -58,6 +58,9 @@ void server_main_loop(server_data_t *s_d) {
           maxfd = i;
         /* active uploads/downloads */
         if (connections[i]->fd > -1) {
+          if (connections[i]->state == OP_DOWNLOAD_WAIT_CONFIRM_PACKAGE) {
+            continue;
+          }
           int fd = connections[i]->fd;
           FD_SET(fd, &readfds);
           if (fd > maxfd)

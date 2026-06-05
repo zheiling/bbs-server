@@ -5,6 +5,7 @@
 #include "file_p.h"
 #include "main.h"
 #include "session.h"
+#include "utils.h"
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -83,5 +84,19 @@ void process_client_command(char *line, session *sess, server_data_t *s_d) {
     sess->state = ERR;
     sess->reason = EXIT;
     session_send_string(sess, "OK. Bye!\n");
+  }
+}
+
+void download_confirm(char *line, session *sess, server_data_t *s_d) {
+  if (!strncmp(line, "continue", sizeof "continue" - 1)) {
+    sess->state = OP_DOWNLOAD;
+    sess->file->package_rest = PACKAGE_SIZE;
+    return;
+  }
+  if (!strncmp(line, "cancel", sizeof "cancel" - 1)) {
+    print_log(stdout, pl_info, "Downloading of %s is canceled by the client\n",
+              sess->file->name);
+    clear_file_from_sess(sess);
+    sess->state = OP_WAIT;
   }
 }

@@ -183,6 +183,7 @@ int32_t file_send_prepare(session *sess, char *line, server_data_t *s_d) {
 
   sess->file->rest = fsize;
   sess->fd = file_d;
+  sess->file->package_rest = PACKAGE_SIZE;
   return 0;
 }
 
@@ -294,7 +295,15 @@ void file_download(session *sess) {
   int source_d = sess->fd;
   int dest_d = sess->sd;
   char buf[INBUFSIZE];
-  int rlen = read(source_d, buf, INBUFSIZE);
+  int read_len;
+
+  if (sess->file->package_rest < INBUFSIZE) {
+    read_len = sess->file->package_rest;
+  } else {
+    read_len = INBUFSIZE;
+  }
+
+  int rlen = read(source_d, buf, read_len);
   if (rlen == 0) {
     if (sess->file->rest) {
       print_log(stdout, pl_error, "Error downloading file %s!\n",
@@ -312,11 +321,17 @@ void file_download(session *sess) {
     sess->state = ERR;
   }
   sess->file->rest -= rlen;
+  sess->file->package_rest -= rlen;
   if (!sess->file->rest) {
     print_log(stdout, pl_info, "File %s is downloaded from the server\n",
               sess->file->name);
     clear_file_from_sess(sess);
     sess->state = OP_WAIT;
+    return;
+  }
+
+  if (sess->file->package_rest == 0) {
+    sess->state = OP_DOWNLOAD_WAIT_CONFIRM_PACKAGE;
   }
 }
 

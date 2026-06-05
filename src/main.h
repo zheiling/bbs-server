@@ -16,6 +16,7 @@
 #define FILE_DESCRIPTIONS_NAME "./file_descriptions"
 #define FILE_USER_LIST_NAME "userlist"
 #define WELCOME_FILE_NAME "welcome"
+#define PACKAGE_SIZE INBUFSIZE * 10
 
 #ifndef __USE_MISC
 #define __USE_MISC
@@ -31,6 +32,7 @@ enum sess_states {
   OP_WAIT,
   OP_UPLOAD,
   OP_UPLOAD_DESCRIPTION,
+  OP_DOWNLOAD_WAIT_CONFIRM_PACKAGE,
   ERR,
   FIN
 };

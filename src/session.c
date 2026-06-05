@@ -211,6 +211,9 @@ void perform_session_action(session *sess, char *line, server_data_t *s_d) {
       }
     }
     break;
+  case OP_DOWNLOAD_WAIT_CONFIRM_PACKAGE:
+    download_confirm(line, sess, s_d);
+    break;
   }
   /* } */
 }

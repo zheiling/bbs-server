@@ -294,26 +294,6 @@ void file_download(session *sess) {
   int source_d = sess->fd;
   int dest_d = sess->sd;
   char buf[INBUFSIZE];
-  struct iovec iov = {.iov_base = buf, .iov_len = INBUFSIZE};
-  /* uses GNU library */
-  ssize_t ret = preadv2(sess->fd, &iov, 1, 0, RWF_NOWAIT);
-  if (ret > 0) {
-    char *line;
-    query_extract_from_buf_2(buf, &ret, &line);
-    if (!strcmp(line, "cancel\n")) {
-      FILE* sd_fileptr = fdopen(sess->fd, "w");
-      fflush(sd_fileptr);
-      fclose(sd_fileptr);
-      free(line);
-      /* replace session buffer with the rest of the local buffer */
-      memcpy(sess->buf, buf, ret);
-      sess->buf_used = ret;
-      clear_file_from_sess(sess);
-      session_send_string(sess, "ready\n");
-      sess->state = OP_WAIT;
-      return;
-    }
-  }
   int rlen = read(source_d, buf, INBUFSIZE);
   if (rlen == 0) {
     if (sess->file->rest) {
@@ -324,7 +304,13 @@ void file_download(session *sess) {
     sess->state = OP_WAIT;
     return;
   }
-  write(dest_d, buf, rlen);
+  int ret = write(dest_d, buf, rlen);
+  if (ret == -1) {
+    const char *err_mes = strerror(errno);
+    print_log(stdout, pl_error, "Error downloading file %s! %s\n",
+              sess->file->name, err_mes);
+    sess->state = ERR;
+  }
   sess->file->rest -= rlen;
   if (!sess->file->rest) {
     print_log(stdout, pl_info, "File %s is downloaded from the server\n",

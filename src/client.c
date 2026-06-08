@@ -89,8 +89,10 @@ void process_client_command(char *line, session *sess, server_data_t *s_d) {
 
 void download_confirm(char *line, session *sess, server_data_t *s_d) {
   if (!strncmp(line, "continue", sizeof "continue" - 1)) {
+    int pac_siz = 0;
+    sscanf(line, "continue %d\n", &pac_siz);
     sess->state = OP_DOWNLOAD;
-    sess->file->package_rest = PACKAGE_SIZE;
+    sess->file->package_rest = pac_siz;
     return;
   }
   if (!strncmp(line, "cancel", sizeof "cancel" - 1)) {

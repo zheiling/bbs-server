@@ -6,6 +6,8 @@ project(ZBBSServer
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(TARGET_GROUP production CACHE STRING "Group to build")
+
 # Uncomment if you need to use PostgresQL
 option(USE_POSTGRESQL "Use PostgreSQL instead of SQLite" OFF)
 
@@ -37,6 +39,13 @@ set(CURSES_NEED_NCURSES TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_subdirectory(src) 
+
+if(TARGET_GROUP STREQUAL test)
+    include(CTest)
+
+    add_subdirectory(external)
+    add_subdirectory(test)
+endif()
 
 install(
   TARGETS zbbs-server

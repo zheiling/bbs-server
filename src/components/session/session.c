@@ -2,11 +2,11 @@
 /* Copyright (c) 2026 Oleksandr Zhylin */
 
 #include "session.h"
-#include "client.h"
-#include "file_p.h"
-#include "main.h"
-#include "user.h"
-#include "utils.h"
+#include "../../client.h"
+#include "../../file_p.h"
+#include "../../main.h"
+#include "../../user.h"
+#include "../../utils.h"
 #include <arpa/inet.h>
 #include <db.h>
 #include <fcntl.h>

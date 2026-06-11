@@ -11,7 +11,6 @@
 
 int32_t create_user(session *sess, char *line) {
   i_db_user_create p;
-  int32_t privileges;
   int32_t res;
   if (sscanf(line, "register %s %s %s", p.uname, p.pass, p.email) == 3) {
     res = db_user_create(&p);

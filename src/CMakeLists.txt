@@ -9,11 +9,24 @@ target_sources(zbbs-server
         ${M_SOURCES}
 )
 
+add_library(main INTERFACE)
+
+target_sources(main
+    PUBLIC
+        FILE_SET HEADERS
+        FILES
+            main.h
+)
+
+
 add_subdirectory(libs)
 add_subdirectory(db)
+add_subdirectory(components)
 
 target_link_libraries(zbbs-server 
     PRIVATE
+        session
+        client
         db
         murmur3
         OpenSSL::Crypto

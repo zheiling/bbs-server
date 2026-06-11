@@ -3,7 +3,7 @@
 
 #include "client.h"
 #include "file_p.h"
-#include "main.h"
+#include <main.h>
 #include "session.h"
 #include "utils.h"
 #include <fcntl.h>

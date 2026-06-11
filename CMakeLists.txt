@@ -40,12 +40,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_subdirectory(src) 
 
-if(TARGET_GROUP STREQUAL test)
-    include(CTest)
-
-    add_subdirectory(external)
-    add_subdirectory(test)
-endif()
+# Testing
+enable_testing()
+include(cmake/OptionsCMocka.cmake)
+add_subdirectory(external/cmocka)
+add_subdirectory(test)
 
 install(
   TARGETS zbbs-server

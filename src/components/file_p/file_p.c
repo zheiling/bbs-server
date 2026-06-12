@@ -1,16 +1,15 @@
 /* SPDX-License-Identifier: MIT */
 /* Copyright (c) 2026 Oleksandr Zhylin */
 
-#include "file_p.h"
-#include "main.h"
-#include "session.h"
-#include "utils.h"
 #include <arpa/inet.h>
 #include <db.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <file_p.h>
+#include <main.h>
 #include <murmur3.h>
 #include <netinet/in.h>
+#include <session.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -26,6 +25,7 @@
 #include <sys/uio.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <utils.h>
 
 char *extract_second_arg(char *);
 size_t get_file_size(char *, char *);

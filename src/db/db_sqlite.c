@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: MIT */
 /* Copyright (c) 2026 Oleksandr Zhylin */
 
-#include "../main.h"
-#include "../utils.h"
+#include <main.h>
+#include <utils.h>
 #include "db_common.h"
 #include <db.h>
 #include <endian.h>

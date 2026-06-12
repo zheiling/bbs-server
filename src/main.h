@@ -5,7 +5,7 @@
 #define MAIN_H
 #include <stddef.h>
 #include <stdint.h>
-#include "types.h"
+#include <types.h>
 #define PORT 2000
 #define MAX_CONNECTIONS 1024
 #define INBUFSIZE 1024

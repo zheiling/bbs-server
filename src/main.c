@@ -2,8 +2,8 @@
 /* Copyright (c) 2026 Oleksandr Zhylin */
 
 #include "main.h"
-#include "server.h"
-#include "utils.h"
+#include <server.h>
+#include <utils.h>
 #include <db.h>
 
 /* *** MAIN *** */

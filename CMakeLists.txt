@@ -41,7 +41,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_subdirectory(src) 
 
 # Testing
-enable_testing()
+include(CTest)
 include(cmake/OptionsCMocka.cmake)
 add_subdirectory(external/cmocka)
 add_subdirectory(test)

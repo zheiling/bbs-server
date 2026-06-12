@@ -10,12 +10,20 @@ target_sources(zbbs-server
 )
 
 add_library(main INTERFACE)
+add_library(types INTERFACE)
 
 target_sources(main
     PUBLIC
         FILE_SET HEADERS
         FILES
             main.h
+)
+
+target_sources(types
+    PUBLIC
+        FILE_SET HEADERS
+        FILES
+            types.h
 )
 
 
@@ -29,6 +37,9 @@ target_link_libraries(zbbs-server
         client
         db
         murmur3
+        types
+        server
+        utils
         OpenSSL::Crypto
 )
 

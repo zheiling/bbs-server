@@ -1,11 +1,11 @@
 /* SPDX-License-Identifier: MIT */
 /* Copyright (c) 2026 Oleksandr Zhylin */
 
-#include "client.h"
-#include "file_p.h"
+#include <client.h>
+#include <file_p.h>
 #include <main.h>
-#include "session.h"
-#include "utils.h"
+#include <session.h>
+#include <utils.h>
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>

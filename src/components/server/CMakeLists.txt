@@ -1,22 +1,21 @@
-add_library(session STATIC)
+add_library(server STATIC)
 
-target_link_libraries(session 
+target_link_libraries(server 
     PRIVATE
         db
-        user
         main
         utils
-        client
         file_p
+        session
         murmur3
         OpenSSL::Crypto
 )
 
-target_sources(session
+target_sources(server
     PRIVATE
-        session.c
+        server.c
     PUBLIC
         FILE_SET HEADERS
         FILES
-            session.h
+            server.h
 )

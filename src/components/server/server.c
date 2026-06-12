@@ -1,11 +1,11 @@
 /* SPDX-License-Identifier: MIT */
 /* Copyright (c) 2026 Oleksandr Zhylin */
 
-#include "db.h"
-#include "file_p.h"
-#include "main.h"
-#include "session.h"
-#include "utils.h"
+#include <db.h>
+#include <file_p.h>
+#include <main.h>
+#include <session.h>
+#include <utils.h>
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>

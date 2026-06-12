@@ -3,7 +3,7 @@
 
 #ifndef SESSION_H
 #define SESSION_H
-#include "../../main.h"
+#include <main.h>
 #include <stdio.h>
 int accept_client(int ls, session *connections[], char *wm);
 void session_send_string(struct session *sess, const char *str, ...);

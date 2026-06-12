@@ -1,2 +1,6 @@
 add_subdirectory(client)
+add_subdirectory(file_p)
 add_subdirectory(session)
+add_subdirectory(server)
+add_subdirectory(utils)
+add_subdirectory(user)

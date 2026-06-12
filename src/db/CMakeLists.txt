@@ -5,11 +5,15 @@ if (USE_POSTGRESQL)
     target_link_libraries(db
         PRIVATE
             PostgreSQL::PostgreSQL
+            main
+            utils
     )
 else()
     target_link_libraries(db
         PRIVATE
             SQLite3::SQLite3
+            main
+            utils
     )
 endif()
 

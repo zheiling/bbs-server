@@ -2,11 +2,11 @@
 /* Copyright (c) 2026 Oleksandr Zhylin */
 
 #include "session.h"
-#include "../../client.h"
-#include "../../file_p.h"
-#include "../../main.h"
-#include "../../user.h"
-#include "../../utils.h"
+#include <client.h>
+#include <file_p.h>
+#include <main.h>
+#include <user.h>
+#include <utils.h>
 #include <arpa/inet.h>
 #include <db.h>
 #include <fcntl.h>
@@ -94,45 +94,51 @@ int session_do_read(session *sess, char **read_str) {
   return 1;
 }
 
+int query_extract_from_buf_2(char *buf, ssize_t *buf_used, char **output_line);
+
 int query_extract_from_buf(session *sess, char **output_line) {
-  char *line;
-  int pos = -1;
+  // char *line;
+  // int pos = -1;
 
-  if (sess->buf_used > 0) {
-    char *cptr = strchr(sess->buf, '\n');
-    if (cptr != NULL)
-      pos = cptr - sess->buf;
-  } else {
-    return 0;
-  }
+  // if (sess->buf_used > 0) {
+  //   char *cptr = strchr(sess->buf, '\n');
+  //   if (cptr != NULL)
+  //     pos = cptr - sess->buf;
+  // } else {
+  //   return 0;
+  // }
 
-  if (pos == -1) {
-    int b_used = sess->buf_used;
-    sess->buf_used = 0;
-    line = malloc(b_used + 1);
-    strncpy(line, sess->buf, b_used);
+  // if (pos == -1) {
+  //   int b_used = sess->buf_used;
+  //   sess->buf_used = 0;
+  //   line = malloc(b_used + 1);
+  //   strncpy(line, sess->buf, b_used);
 
-    line[b_used] = 0;
+  //   line[b_used] = 0;
 
-    *output_line = line;
-    return b_used;
-  } else {
-    line = malloc(pos + 2);
-    strncpy(line, sess->buf, pos + 1);
-    line[++pos] = 0;
-    sess->buf_used -= (pos);
-    if (!pos)
-      pos++;
-    memmove(sess->buf, sess->buf + pos, sess->buf_used);
-    sess->buf[sess->buf_used] = 0;
-    if (line[pos - 2] == '\r') {
-      line[pos - 2] = line[pos - 1];
-      pos--;
-      line[pos - 1] = 0;
-    }
-    *output_line = line;
-  }
-  return pos + 1;
+  //   *output_line = line;
+  //   return b_used;
+  // } else {
+  //   line = malloc(pos + 2);
+  //   strncpy(line, sess->buf, pos + 1);
+  //   line[++pos] = 0;
+  //   sess->buf_used -= (pos);
+  //   if (!pos)
+  //     pos++;
+  //   memmove(sess->buf, sess->buf + pos, sess->buf_used);
+  //   sess->buf[sess->buf_used] = 0;
+  //   if (line[pos - 2] == '\r') {
+  //     line[pos - 2] = line[pos - 1];
+  //     pos--;
+  //     line[pos] = 0;
+  //   }
+  //   *output_line = line;
+  // }
+  // return pos + 1;
+  ssize_t buf_used = sess->buf_used;
+  int ret = query_extract_from_buf_2(sess->buf, &buf_used, output_line);
+  sess->buf_used = buf_used;
+  return ret;
 }
 
 int query_extract_from_buf_2(char *buf, ssize_t *buf_used, char **output_line) {
@@ -170,7 +176,7 @@ int query_extract_from_buf_2(char *buf, ssize_t *buf_used, char **output_line) {
     if (line[pos - 2] == '\r') {
       line[pos - 2] = line[pos - 1];
       pos--;
-      line[pos - 1] = 0;
+      line[pos] = 0;
     }
     *output_line = line;
     *buf_used = _buf_used;

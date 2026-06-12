@@ -4,6 +4,9 @@ target_link_libraries(client
     PRIVATE
         db
         main
+        file_p
+        session
+        utils
         murmur3
         OpenSSL::Crypto
 )

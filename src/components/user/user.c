@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int32_t create_user(session *sess, char *line) {
+__attribute__((weak)) int32_t create_user(session *sess, char *line) {
   i_db_user_create p;
   int32_t res;
   if (sscanf(line, "register %s %s %s", p.uname, p.pass, p.email) == 3) {
@@ -74,8 +74,7 @@ int login(session *sess, char *pass) {
     sess->state = OP_WAIT;
     sess->privileges = (char)atoi(&response.privileges);
     sess->uid = response.uid;
-    sprintf(tmp_string, "Welcome, %s\n", sess->uname);
-    session_send_string(sess, tmp_string);
+    session_send_string(sess, "Welcome, %s\n", sess->uname);
     return 0;
   } else {
     sprintf(tmp_string, "login_again>\n");

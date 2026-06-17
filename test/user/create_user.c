@@ -21,7 +21,7 @@ void __wrap_session_send_string(struct session *sess, const char *fmt, ...) {}
 
 /* TODO: divide into separate cases and check messages */
 
-void test_create_user(void **state) {
+void test__create_user__normal(void **state) {
   session sess = {};
   i_db_user_create p;
   int32_t ret = 0;
@@ -45,11 +45,32 @@ void test_create_user(void **state) {
   assert_int_equal(ret, -4);
 }
 
+void test__create_user__partial(void **state) {
+  session sess = {};
+  i_db_user_create p;
+  int32_t ret = 0;
+  char line[1024];
+
+  /* Less args */
+  sprintf(line, "register %s %s\n", UNAME, PASS);
+  ret = create_user(&sess, line);
+  assert_int_equal(ret, 0);  
+
+  /* More args */
+  sprintf(line, "register %s %s %s not_used\n", UNAME, PASS, EMAIL);
+  will_return(__wrap_db_user_create, 321);
+  ret = create_user(&sess, line);
+  assert_int_equal(ret, 321);
+}
+
 int setup(void **state) { return 0; }
 int tear_down(void **state) { return 0; }
 
 int main(int argc, char **argv) {
-  const struct CMUnitTest tests[] = {cmocka_unit_test(test_create_user)};
+  const struct CMUnitTest tests[] = {
+      cmocka_unit_test(test__create_user__normal),
+      cmocka_unit_test(test__create_user__partial),
+  };
 
   return cmocka_run_group_tests(tests, setup, tear_down);
 }

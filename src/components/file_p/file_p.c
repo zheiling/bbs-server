@@ -30,17 +30,23 @@
 char *extract_second_arg(char *);
 size_t get_file_size(char *, char *);
 
-void clear_list(fl_t *start) {
-  if (start) {
+void clear_list(fl_t **a_start, fl_t **a_current) {
+  if (a_start == NULL) return;
+  fl_t *start = *a_start;
+  if (start != NULL) {
     fl_t *curr = start;
     fl_t *next;
     do {
       next = curr->next;
-      free(curr->description);
-      free(curr->name);
-      free(curr->owner);
+      if (curr->description != NULL) free(curr->description);
+      if (curr->name != NULL) free(curr->name);
+      if (curr->owner != NULL) free(curr->owner);
       free(curr);
     } while ((curr = next) != NULL);
+  }
+  *a_start = NULL;
+  if (a_current != NULL) {
+    *a_current = NULL;
   }
 }
 
@@ -54,9 +60,7 @@ void file_list(session *sess, server_data_t *s_d, i_file_list_t *f_args) {
   fl_current = NULL;
 
   if (sess->fl_start) {
-    clear_list(fl_start);
-    sess->fl_start = NULL;
-    sess->fl_current = NULL;
+    clear_list(&fl_start, &fl_current);
   }
 
   args.limit = f_args->limit;

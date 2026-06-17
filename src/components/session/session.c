@@ -232,8 +232,7 @@ void close_session(session *connections[], int sd) {
     connections[sd]->sd = -1;
     free(connections[sd]->uname);
     if (connections[sd]->fl_start != NULL) {
-      fl_t *fl_start = connections[sd]->fl_start;
-      clear_list(fl_start);
+      clear_list(&(connections[sd]->fl_start), NULL);
     }
     free(connections[sd]);
     connections[sd] = NULL;

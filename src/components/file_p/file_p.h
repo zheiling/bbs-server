@@ -18,7 +18,7 @@ enum f_actions {
 };
 
 void clear_list(fl_t **a_start, fl_t **a_current);
-void file_list(session *, server_data_t *, i_file_list_t *l_args);
+void file_list(session *, i_file_list_t *l_args);
 int  file_send_prepare(session *, char *, server_data_t *);
 int  file_receive_prepare(session *sess, char *line, server_data_t *s_d);
 int  file_upload_description(session *sess, char *line, server_data_t *s_d);

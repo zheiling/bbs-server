@@ -36,7 +36,7 @@ void process_client_command(char *line, session *sess, server_data_t *s_d) {
       case 1:
         fl_args.page = DEF_PAGE_NUM;
       }
-      file_list(sess, s_d, &fl_args);
+      file_list(sess, &fl_args);
       return;
     }
 
@@ -76,7 +76,7 @@ void process_client_command(char *line, session *sess, server_data_t *s_d) {
         fl_args.name = s_val;
       }
 
-      file_list(sess, s_d, &fl_args);
+      file_list(sess, &fl_args);
     }
   }
 

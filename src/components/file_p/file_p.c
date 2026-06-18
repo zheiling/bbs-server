@@ -31,16 +31,20 @@ char *extract_second_arg(char *);
 size_t get_file_size(char *, char *);
 
 void clear_list(fl_t **a_start, fl_t **a_current) {
-  if (a_start == NULL) return;
+  if (a_start == NULL)
+    return;
   fl_t *start = *a_start;
   if (start != NULL) {
     fl_t *curr = start;
     fl_t *next;
     do {
       next = curr->next;
-      if (curr->description != NULL) free(curr->description);
-      if (curr->name != NULL) free(curr->name);
-      if (curr->owner != NULL) free(curr->owner);
+      if (curr->description != NULL)
+        free(curr->description);
+      if (curr->name != NULL)
+        free(curr->name);
+      if (curr->owner != NULL)
+        free(curr->owner);
       free(curr);
     } while ((curr = next) != NULL);
   }
@@ -50,7 +54,7 @@ void clear_list(fl_t **a_start, fl_t **a_current) {
   }
 }
 
-void file_list(session *sess, server_data_t *s_d, i_file_list_t *f_args) {
+void file_list(session *sess, i_file_list_t *f_args) {
   fl_t *fl_start, *fl_current;
   char item_h[256];
   i_get_files_db args;
@@ -67,6 +71,7 @@ void file_list(session *sess, server_data_t *s_d, i_file_list_t *f_args) {
   args.offset = f_args->limit * (f_args->page - 1);
   args.sort_by = ID;
   args.sort_direction = ASC;
+
   if (f_args->name != NULL) {
     strcpy(args.search_str, f_args->name);
   } else {

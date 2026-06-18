@@ -28,6 +28,6 @@ target_link_libraries(file_list
     main
 )
 
-target_link_options(file_list PRIVATE -Wl,--wrap=db_get_files_data)
+target_link_options(file_list PRIVATE -Wl,--wrap=db_get_files_data,--wrap=write)
 
 add_test(NAME file_p_file_list_test_1 COMMAND file_list)

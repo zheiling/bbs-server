@@ -32,6 +32,7 @@ int32_t dbuf_write(const char *text, size_t text_len, dbuf_t **__dbuf) {
   it_times++;
   int _it_times = it_times;
   strncpy(dbuf->ptr + dbuf->len, text, text_len);
+  dbuf->ptr[dbuf->len + text_len] = '\0';
   dbuf->len += text_len;
   return 0;
 }
@@ -45,7 +46,7 @@ int32_t dbuf_destroy(dbuf_t **dbuf) {
 
 void fill_list_with_samples(fl_t *fl_sample, fl_t **fl_st, fl_t **fl_cur,
                             int amount) {
-  fl_t *_fl_st, *_fl_cur;
+  fl_t *_fl_st = NULL, *_fl_cur = NULL;
 
   if (fl_st == NULL)
     return;

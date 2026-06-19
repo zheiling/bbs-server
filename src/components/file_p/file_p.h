@@ -27,4 +27,7 @@ void clear_file_from_sess(session *);
 int  directory_exists(const char *path);
 void file_download(session *sess);
 void file_upload(session *sess);
+
+/* TESTING */
+void extract_names_from_hash(int32_t file_hash, char *dirname, char *fname);
 #endif

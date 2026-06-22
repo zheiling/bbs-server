@@ -42,8 +42,7 @@ void test_create_login_success(void **state) {
   // assert_int_not_equal(sess.privileges, 0);
   assert_int_equal(sess.state, OP_WAIT);
 
-  char welcome_mes[sizeof "Welcome, " + sizeof UNAME + 5];
-  sprintf(welcome_mes, "Welcome, %s\n", UNAME);
+  char welcome_mes[] = "Welcome, " UNAME "\n";
   assert_string_equal(welcome_mes, ret_buf);
 }
 

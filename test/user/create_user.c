@@ -49,10 +49,9 @@ void test__create_user__partial(void **state) {
   session sess = {};
   i_db_user_create p;
   int32_t ret = 0;
-  char line[1024];
+  char line[1024] = "register " UNAME " " PASS "\n";
 
   /* Less args */
-  sprintf(line, "register %s %s\n", UNAME, PASS);
   ret = create_user(&sess, line);
   assert_int_equal(ret, 0);  
 

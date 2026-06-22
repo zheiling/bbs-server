@@ -61,6 +61,6 @@ target_link_libraries(file_send_prepare
     utils
 )
 
-target_link_options(file_list PRIVATE -Wl,--wrap=db_get_files_data,--wrap=write,--wrap=print_log,--wrap=lseek,--wrap=open)
+target_link_options(file_send_prepare PRIVATE -Wl,--wrap=write,--wrap=print_log,--wrap=lseek,--wrap=open,--wrap=db_get_file)
 
 add_test(NAME file_p_file_send_prepare_test_1 COMMAND file_send_prepare)

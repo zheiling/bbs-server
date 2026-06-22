@@ -28,8 +28,7 @@ void test_create_user(void **state) {
   session sess = {};
   i_db_user_create p;
   int32_t ret = 0;
-  char line[sizeof "register" + sizeof UNAME + sizeof PASS + sizeof EMAIL + 5];
-  sprintf(line, "register %s %s %s\n", UNAME, PASS, EMAIL);
+  char line[] = "register " UNAME " " PASS " " EMAIL "\n";
   will_return(__wrap_db_user_create, 123);
   ret = create_user(&sess, line);
   assert_int_equal(ret, 123);

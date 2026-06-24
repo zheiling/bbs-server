@@ -64,3 +64,21 @@ target_link_libraries(file_send_prepare
 target_link_options(file_send_prepare PRIVATE -Wl,--wrap=write,--wrap=print_log,--wrap=lseek,--wrap=open,--wrap=db_get_file)
 
 add_test(NAME file_p_file_send_prepare_test_1 COMMAND file_send_prepare)
+
+# ---/ file_receive_prepare /-------------------------------------------
+
+add_executable(file_receive_prepare
+    file_receive_prepare.c
+    utils.c
+)
+
+target_link_libraries(file_receive_prepare
+    cmocka
+    file_p
+    main
+    utils
+)
+
+target_link_options(file_receive_prepare PRIVATE -Wl,--wrap=stat,--wrap=statvfs,--wrap=print_log,--wrap=open,--wrap=chdir,--wrap=write,--wrap=mkdir)
+
+add_test(NAME file_p_file_receive_prepare_test_1 COMMAND file_receive_prepare)

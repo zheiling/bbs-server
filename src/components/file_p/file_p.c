@@ -196,6 +196,8 @@ int32_t file_send_prepare(session *sess, char *line, server_data_t *s_d) {
   return 0;
 }
 
+#define ERR_FSV "Can't create a file."
+
 int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
   int sd = sess->sd;
   size_t fsize = 0;
@@ -218,18 +220,20 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
   struct statvfs st_str;
   statvfs(".", &st_str);
   size_t available_space = st_str.f_bavail * st_str.f_bsize;
+
   if (strlen(sess->file->name) > st_str.f_namemax) {
-    mes_len = sprintf(mes, "file name is tool long\n");
+    mes_len = sprintf(mes, "file name is too long\n");
     write(sd, mes, mes_len);
     sess->state = OP_WAIT;
     clear_file_from_sess(sess);
     return -1;
   }
+
   if (fsize > available_space) {
-    mes_len = sprintf(mes, "There is no space for such length! (%ld)\n", fsize);
+    mes_len = sprintf(mes, "There is no space for such size! (%ld)\n", fsize);
     write(sd, mes, mes_len);
     clear_file_from_sess(sess);
-    return -1;
+    return -2;
   }
 
   char hashed_dir_name[3];
@@ -249,7 +253,11 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
     chdir(STORAGE_FOLDER);
 
     if (!directory_exists(hashed_dir_name)) {
-      mkdir(hashed_dir_name, 0700);
+      if (mkdir(hashed_dir_name, 0700) != 0) {
+        write(sd, ERR_FSV, sizeof ERR_FSV - 1);
+        clear_file_from_sess(sess);
+        return -4;
+      }
     }
     chdir("../");
 
@@ -259,12 +267,10 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
         seed++;
         continue;
       }
-      mes_len = sprintf(mes, "Can't create file with such name: \"%s\"\n",
-                        sess->file->name);
-      write(sd, mes, mes_len);
+      write(sd, ERR_FSV, sizeof ERR_FSV - 1);
       clear_file_from_sess(sess);
       sess->file = NULL;
-      return -1;
+      return -3;
     }
     break;
   }

@@ -44,7 +44,7 @@ s_file_t *__wrap_db_get_file(i_get_file_db *arg) {
 
 int __wrap_open(const char *__file, int __oflag, ...) { return mock_type(int); }
 
-void test__file_send_prepare(void **state) {
+void test__file_receive_prepare(void **state) {
   s_file_t file = {.name = FNAME, .size = FSIZE, .hash = FHASH, .id = FID};
   char line[] = "[" FNAME "]";
   session sess = {
@@ -128,7 +128,7 @@ int tear_down(void **state) { return 0; }
 
 int main(int argc, char **argv) {
   const struct CMUnitTest tests[] = {
-      cmocka_unit_test(test__file_send_prepare),
+      cmocka_unit_test(test__file_receive_prepare),
       cmocka_unit_test(test__file_send_prepare__no_open),
       cmocka_unit_test(test__file_send_prepare__db_no_file),
       cmocka_unit_test(test__file_send_prepare__size_not_correct),

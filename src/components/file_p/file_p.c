@@ -285,24 +285,26 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
 
 void clear_file_from_sess(session *s) {
   s_file_t *sf = s->file;
-  if (sf->name != NULL) {
-    free(sf->name);
-    sf->name = NULL;
+  if (sf != NULL) {
+    if (sf->name != NULL) {
+      free(sf->name);
+      sf->name = NULL;
+    }
+    if (sf->path != NULL) {
+      free(sf->path);
+      sf->path = NULL;
+    }
+    if (sf->description != NULL) {
+      free(sf->description);
+      sf->description = NULL;
+    }
+    if (s->fd > -1) {
+      close(s->fd);
+      s->fd = -1;
+    }
+    free(sf);
+    s->file = NULL;
   }
-  if (sf->path != NULL) {
-    free(sf->path);
-    sf->path = NULL;
-  }
-  if (sf->description != NULL) {
-    free(sf->description);
-    sf->description = NULL;
-  }
-  if (s->fd > -1) {
-    close(s->fd);
-    s->fd = -1;
-  }
-  free(sf);
-  s->file = NULL;
 }
 
 /* download to the client */

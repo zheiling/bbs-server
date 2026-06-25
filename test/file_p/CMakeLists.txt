@@ -67,18 +67,18 @@ add_test(NAME file_p_file_send_prepare_test_1 COMMAND file_send_prepare)
 
 # ---/ file_receive_prepare /-------------------------------------------
 
-add_executable(file_receive_prepare
-    file_receive_prepare.c
+add_executable(clear_file_from_sess
+    clear_file_from_sess.c
     utils.c
 )
 
-target_link_libraries(file_receive_prepare
+target_link_libraries(clear_file_from_sess
     cmocka
     file_p
     main
     utils
 )
 
-target_link_options(file_receive_prepare PRIVATE -Wl,--wrap=stat,--wrap=statvfs,--wrap=print_log,--wrap=open,--wrap=chdir,--wrap=write,--wrap=mkdir)
+target_link_options(clear_file_from_sess PRIVATE -Wl,--wrap=free)
 
-add_test(NAME file_p_file_receive_prepare_test_1 COMMAND file_receive_prepare)
+add_test(NAME file_p_clear_file_from_sess_test_1 COMMAND clear_file_from_sess)

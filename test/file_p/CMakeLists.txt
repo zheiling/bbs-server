@@ -82,3 +82,22 @@ target_link_libraries(clear_file_from_sess
 target_link_options(clear_file_from_sess PRIVATE -Wl,--wrap=free)
 
 add_test(NAME file_p_clear_file_from_sess_test_1 COMMAND clear_file_from_sess)
+
+# ---/ file_download /-------------------------------------------
+
+add_executable(file_download
+    file_download.c
+    utils.c
+)
+
+target_link_libraries(file_download
+    cmocka
+    file_p
+    main
+    utils
+    client
+)
+
+target_link_options(file_download PRIVATE -Wl,--wrap=print_log,--wrap=read,--wrap=write)
+
+add_test(NAME file_p_file_download_test_1 COMMAND file_download)

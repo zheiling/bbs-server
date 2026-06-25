@@ -336,6 +336,8 @@ void file_download(session *sess) {
     print_log(stdout, pl_error, "Error downloading file %s! %s\n",
               sess->file->name, err_mes);
     sess->state = ERR;
+    clear_file_from_sess(sess);
+    return;
   }
   sess->file->rest -= rlen;
   sess->file->package_rest -= rlen;

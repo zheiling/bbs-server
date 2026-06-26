@@ -1,11 +1,13 @@
 #include "../../src/main.h"
+#include "cmocka.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "utils.h"
+#include "test_utils.h"
+#include <utils.h>
 
 dbuf_t *dbuf_init(size_t init_sz) {
   dbuf_t *dbuf = malloc(sizeof(dbuf_t));
@@ -79,3 +81,31 @@ void fill_list_with_samples(fl_t *fl_sample, fl_t **fl_st, fl_t **fl_cur,
     *fl_cur = _fl_cur;
   }
 }
+
+char *print_str = NULL;
+void *print_str_arr = NULL;
+
+int __wrap_print_log(FILE *output, enum pl_type type, const char *fmt, ...) {
+  if (print_str != NULL) {
+    assert_string_equal(print_str, fmt);
+    print_str = NULL;
+  } else if (print_str_arr != NULL) {
+    char **ptrs = print_str_arr;
+    va_list args;
+    assert_string_equal(*ptrs, fmt);
+    ptrs++;
+    va_start(args, fmt);
+    
+    while (*ptrs != NULL) {
+      char *out_str = va_arg(args, char *);
+      assert_string_equal(out_str, *ptrs);
+      ptrs++;
+    }
+
+    print_str_arr = NULL;
+
+    va_end(args);
+  }
+
+  return 0;
+};

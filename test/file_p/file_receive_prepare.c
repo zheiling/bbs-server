@@ -17,6 +17,7 @@
 #include <sys/cdefs.h>
 #include <unistd.h>
 #include <utils.h>
+#include <test_utils.h>
 
 #define FSIZE 10233
 #define FSIZE_S "10233"
@@ -59,11 +60,6 @@ int __wrap_stat(const char *__restrict __file, struct stat *__restrict __buf) {
 int __wrap_mkdir(const char *__path, __mode_t __mode) { return mock_type(int); }
 
 int __wrap_chdir(const char *__path) { return 0; }
-
-int __wrap_print_log(FILE *output, enum pl_type type,
-                     const char *format_message, ...) {
-  return 0;
-};
 
 ssize_t __wrap_write(int __fd, const void *__buf, size_t __n) __wur {
   dbuf_write(__buf, __n, &dbuf);

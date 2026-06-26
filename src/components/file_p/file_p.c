@@ -315,7 +315,14 @@ void file_download(session *sess) {
   int read_len;
 
   if (sess->file->package_rest < INBUFSIZE) {
+    if (sess->file->package_rest == 0) {
+      sess->state = OP_DOWNLOAD_WAIT_CONFIRM_PACKAGE;
+      return;
+    }
     read_len = sess->file->package_rest;
+  } else if (sess->file->rest < INBUFSIZE) {
+    /* Do not trust read */
+    read_len = sess->file->rest;
   } else {
     read_len = INBUFSIZE;
   }

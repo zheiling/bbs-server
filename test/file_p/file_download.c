@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <utils.h>
+#include <test_utils.h>
 
 dbuf_t *dbuf = NULL;
 #define FNAME "Test file"
@@ -16,29 +17,8 @@ dbuf_t *dbuf = NULL;
 #define FSIZE PACKAGE_SIZE *ITERATIONS
 int read_ret_zero = 0;
 int write_ret_m_1 = 0;
-char *print_str = NULL;
-void *print_str_arr = NULL;
-
-int __wrap_print_log(FILE *output, enum pl_type type, const char *fmt, ...) {
-  if (print_str != NULL) {
-    assert_string_equal(print_str, fmt);
-  } else if (print_str_arr != NULL) {
-    char **ptrs = print_str_arr;
-    va_list args;
-    assert_string_equal(*ptrs, fmt);
-    ptrs++;
-    va_start(args, fmt);
-    while (*ptrs != NULL) {
-      char *out_str = va_arg(args, char *);
-      assert_string_equal(out_str, *ptrs);
-      ptrs++;
-    }
-
-    va_end(args);
-  }
-
-  return 0;
-};
+extern char *print_str;
+extern void *print_str_arr;
 
 ssize_t __wrap_read(int __fd, void *__buf, size_t __nbytes) {
   if (read_ret_zero)
@@ -66,20 +46,52 @@ void test__file_download__normal(void **state) {
   sess.file->path = malloc(sizeof(char) * INBUFSIZE);
   sess.file->description = malloc(sizeof(char) * INBUFSIZE);
   strcpy(sess.file->name, FNAME);
+  char cont_mes[64];
+
+  sprintf(cont_mes, "continue %d\n", PACKAGE_SIZE);
 
   const char *fmt_args[] = {"File %s is downloaded from the server\n", FNAME,
                             NULL};
   print_str_arr = fmt_args;
 
-  while (sess.state != OP_WAIT) {
+  for (int i = 0; (sess.state != OP_WAIT) && (i < 2000000000); i++) {
     file_download(&sess);
     if (sess.state == OP_DOWNLOAD_WAIT_CONFIRM_PACKAGE) {
-      download_confirm("continue", &sess, NULL);
+      download_confirm(cont_mes, &sess, NULL);
     }
   }
   assert_int_equal(sess.state, OP_WAIT);
   assert_ptr_equal(sess.file, NULL);
-  print_str_arr = NULL;
+  clear_file_from_sess(&sess);
+}
+
+void test__file_download__normal_alt_buf_size(void **state) {
+  dbuf = dbuf_init(INBUFSIZE);
+
+  session sess = {.state = OP_DOWNLOAD};
+  sess.file = malloc(sizeof(s_file_t));
+  sess.file->name = malloc(sizeof FNAME);
+  sess.file->size = sess.file->rest = FSIZE;
+  sess.file->package_rest = PACKAGE_SIZE;
+  sess.file->path = malloc(sizeof(char) * INBUFSIZE);
+  sess.file->description = malloc(sizeof(char) * INBUFSIZE);
+  strcpy(sess.file->name, FNAME);
+  char cont_mes[64];
+
+  sprintf(cont_mes, "continue %d\n", PACKAGE_SIZE / 3);
+
+  const char *fmt_args[] = {"File %s is downloaded from the server\n", FNAME,
+                            NULL};
+  print_str_arr = fmt_args;
+
+  for (int i = 0; (sess.state != OP_WAIT) && (i < 2000000000); i++) {
+    file_download(&sess);
+    if (sess.state == OP_DOWNLOAD_WAIT_CONFIRM_PACKAGE) {
+      download_confirm(cont_mes, &sess, NULL);
+    }
+  }
+  assert_int_equal(sess.state, OP_WAIT);
+  assert_ptr_equal(sess.file, NULL);
   clear_file_from_sess(&sess);
 }
 
@@ -108,7 +120,6 @@ void test__file_download__cancel(void **state) {
   }
   assert_int_equal(sess.state, OP_WAIT);
   assert_ptr_equal(sess.file, NULL);
-  print_str_arr = NULL;
 }
 
 void test__file_download__read_zero(void **state) {
@@ -129,7 +140,6 @@ void test__file_download__read_zero(void **state) {
   assert_int_equal(sess.state, OP_WAIT);
   assert_ptr_equal(sess.file, NULL);
   read_ret_zero = false;
-  print_str_arr = NULL;
 }
 
 void test__file_download__read_write_m_1(void **state) {
@@ -154,7 +164,6 @@ void test__file_download__read_write_m_1(void **state) {
   assert_int_equal(sess.state, ERR);
   assert_ptr_equal(sess.file, NULL);
   write_ret_m_1 = false;
-  print_str_arr = NULL;
 }
 
 int setup(void **state) { return 0; }
@@ -163,6 +172,7 @@ int tear_down(void **state) { return 0; }
 int main(int argc, char **argv) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test__file_download__normal),
+      cmocka_unit_test(test__file_download__normal_alt_buf_size),
       cmocka_unit_test(test__file_download__cancel),
       cmocka_unit_test(test__file_download__read_zero),
       cmocka_unit_test(test__file_download__read_write_m_1),

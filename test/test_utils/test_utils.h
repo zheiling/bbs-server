@@ -1,4 +1,9 @@
-#include "../../src/main.h"
+#ifndef TEST_UTILS_H
+#define TEST_UTILS_H
+
+#include <main.h>
+#include <stdio.h>
+#include <utils.h>
 
 typedef struct {
   char *ptr;
@@ -11,3 +16,6 @@ void fill_list_with_samples(fl_t *fl_samples, fl_t **fl_st, fl_t **fl_cur,
 dbuf_t *dbuf_init(size_t init_sz);
 int32_t dbuf_write(const char *text, size_t len, dbuf_t **dbuf);
 int32_t dbuf_destroy(dbuf_t **dbuf);
+int __wrap_print_log(FILE *output, enum pl_type type, const char *fmt, ...);
+
+#endif

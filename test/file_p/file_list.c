@@ -13,6 +13,7 @@
 #include <string.h>
 #include <sys/cdefs.h>
 #include <unistd.h>
+#include <test_utils.h>
 
 #define COUNT 20
 dbuf_t *dbuf;

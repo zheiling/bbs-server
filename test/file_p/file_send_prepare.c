@@ -14,6 +14,7 @@
 #include <sys/cdefs.h>
 #include <unistd.h>
 #include <utils.h>
+#include <test_utils.h>
 
 dbuf_t *dbuf;
 
@@ -22,11 +23,6 @@ dbuf_t *dbuf;
 #define FHASH 211212
 #define FID 19
 #define FID_S "19"
-
-int __wrap_print_log(FILE *output, enum pl_type type,
-                     const char *format_message, ...) {
-  return 0;
-};
 
 ssize_t __wrap_write(int __fd, const void *__buf, size_t __n) __wur {
   dbuf_write(__buf, __n, &dbuf);

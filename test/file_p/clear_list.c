@@ -10,7 +10,7 @@
 #include <file_p.h>
 #include <main.h>
 #include <string.h>
-#include "utils.h"
+#include <test_utils.h>
 
 fl_t fl_sample = {
     .name = "test_file", .description = "Hello test file", .owner = "user1234"};

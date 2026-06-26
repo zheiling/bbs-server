@@ -366,7 +366,9 @@ void file_upload(session *sess) {
   int source_d = sess->sd;
   int dest_d = sess->fd;
   char buf[INBUFSIZE];
+
   int rlen = read(source_d, buf, INBUFSIZE);
+
   if (rlen == 0) {
     if (sess->file->rest) {
       print_log(stdout, pl_error, "Error uploading file %s!\n",
@@ -377,17 +379,26 @@ void file_upload(session *sess) {
     sess->state = OP_WAIT;
     return;
   }
+
   if (sess->file->package_rest < rlen) {
+    /* TODO: wrap write function to give a proper response if the write is failed */
     write(dest_d, buf, sess->file->package_rest);
     rlen -= sess->file->package_rest;
     sess->file->rest -= sess->file->package_rest;
     if (rlen == 0)
       return;
+    if (sess->file->rest == 0)
+      goto fin;
     s_file_pd_t *fpd = (s_file_pd_t *)(buf + sess->file->package_rest);
     switch (fpd->signal) {
     case sig_continue:
       rlen -= sizeof(s_file_pd_t);
       if (rlen > 0) {
+        if (rlen > sess->file->rest) {
+          rlen = sess->file->rest;
+          /* TODO: return back the extra data to the buffer in order to process
+           * it */
+        }
         write(dest_d, buf + sess->file->package_rest + sizeof(s_file_pd_t),
               rlen);
         sess->file->rest -= rlen;
@@ -412,7 +423,7 @@ void file_upload(session *sess) {
     sess->file->rest -= rlen;
     sess->file->package_rest -= rlen;
   }
-
+fin:
   if (!sess->file->rest) {
     print_log(stdout, pl_info, "File %s is uploaded to the server\n",
               sess->file->name);

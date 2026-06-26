@@ -101,3 +101,22 @@ target_link_libraries(file_download
 target_link_options(file_download PRIVATE -Wl,--wrap=print_log,--wrap=read,--wrap=write)
 
 add_test(NAME file_p_file_download_test_1 COMMAND file_download)
+
+# ---/ file_upload /-------------------------------------------
+
+add_executable(file_upload
+    file_upload.c
+)
+
+target_link_libraries(file_upload
+    cmocka
+    file_p
+    main
+    utils
+    client
+    test_utils
+)
+
+target_link_options(file_upload PRIVATE -Wl,--wrap=print_log,--wrap=read,--wrap=write,--wrap=db_save_file,--wrap=session_send_string,--wrap=unlink)
+
+add_test(NAME file_p_file_upload_test_1 COMMAND file_upload)

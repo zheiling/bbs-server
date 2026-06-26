@@ -1,5 +1,4 @@
 #include "main.h"
-#include "utils.h"
 #include <client.h>
 #include <cmocka.h>
 #include <errno.h>
@@ -8,22 +7,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <utils.h>
 #include <test_utils.h>
+#include <utils.h>
 
 dbuf_t *dbuf = NULL;
 #define FNAME "Test file"
 #define ITERATIONS 100
-#define FSIZE PACKAGE_SIZE *ITERATIONS
+#define FSIZE PACKAGE_SIZE * ITERATIONS
 int read_ret_zero = 0;
 int write_ret_m_1 = 0;
 extern char *print_str;
 extern void *print_str_arr;
 
 ssize_t __wrap_read(int __fd, void *__buf, size_t __nbytes) {
-  if (read_ret_zero)
+  if (read_ret_zero) {
+    read_ret_zero = 0;
     return 0;
-  ssize_t _size = __nbytes;
+  }
   memset(__buf, 'e', __nbytes);
   return __nbytes;
 }
@@ -62,7 +62,6 @@ void test__file_download__normal(void **state) {
   }
   assert_int_equal(sess.state, OP_WAIT);
   assert_ptr_equal(sess.file, NULL);
-  clear_file_from_sess(&sess);
 }
 
 void test__file_download__normal_alt_buf_size(void **state) {
@@ -92,7 +91,6 @@ void test__file_download__normal_alt_buf_size(void **state) {
   }
   assert_int_equal(sess.state, OP_WAIT);
   assert_ptr_equal(sess.file, NULL);
-  clear_file_from_sess(&sess);
 }
 
 void test__file_download__cancel(void **state) {
@@ -106,13 +104,11 @@ void test__file_download__cancel(void **state) {
   sess.file->path = malloc(sizeof(char) * INBUFSIZE);
   sess.file->description = malloc(sizeof(char) * INBUFSIZE);
   strcpy(sess.file->name, FNAME);
-
   const char *fmt_args[] = {"Downloading of %s is canceled by the client\n",
                             FNAME, NULL};
   print_str_arr = fmt_args;
-
+  
   while (sess.state != OP_WAIT) {
-    read_ret_zero = false;
     file_download(&sess);
     if (sess.state == OP_DOWNLOAD_WAIT_CONFIRM_PACKAGE) {
       download_confirm("cancel", &sess, NULL);
@@ -139,7 +135,6 @@ void test__file_download__read_zero(void **state) {
   file_download(&sess);
   assert_int_equal(sess.state, OP_WAIT);
   assert_ptr_equal(sess.file, NULL);
-  read_ret_zero = false;
 }
 
 void test__file_download__read_write_m_1(void **state) {

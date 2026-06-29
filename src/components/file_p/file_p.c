@@ -361,6 +361,23 @@ void file_download(session *sess) {
   }
 }
 
+#define file_upload_write(sess, dest_d, buf, len)                              \
+  {                                                                            \
+    int res = write(dest_d, buf, len);                                         \
+    if (res == -1) {                                                           \
+      session_send_string(                                                     \
+          sess, "There is an error sending the file named \"%s\"\n");          \
+      char *err_mes = strerror(errno);                                         \
+      print_log(stdout, pl_error, "Error uploading the file \"%s\": %s\n",     \
+                sess->file->name, err_mes);                                    \
+      close(dest_d);                                                           \
+      unlink(sess->file->path); /* remove file */                              \
+      clear_file_from_sess(sess);                                              \
+      sess->state = OP_WAIT;                                                   \
+      return;                                                                  \
+    }                                                                          \
+  }
+
 /* upload to the server */
 void file_upload(session *sess) {
   int source_d = sess->sd;
@@ -381,8 +398,7 @@ void file_upload(session *sess) {
   }
 
   if (sess->file->package_rest < rlen) {
-    /* TODO: wrap write function to give a proper response if the write is failed */
-    write(dest_d, buf, sess->file->package_rest);
+    file_upload_write(sess, dest_d, buf, sess->file->package_rest);
     rlen -= sess->file->package_rest;
     sess->file->rest -= sess->file->package_rest;
     if (rlen == 0)
@@ -399,8 +415,9 @@ void file_upload(session *sess) {
           /* TODO: return back the extra data to the buffer in order to process
            * it */
         }
-        write(dest_d, buf + sess->file->package_rest + sizeof(s_file_pd_t),
-              rlen);
+        file_upload_write(sess, dest_d,
+                          buf + sess->file->package_rest + sizeof(s_file_pd_t),
+                          rlen);
         sess->file->rest -= rlen;
       }
       sess->file->package_rest = fpd->package_size - rlen;
@@ -419,7 +436,7 @@ void file_upload(session *sess) {
       break;
     }
   } else {
-    write(dest_d, buf, rlen);
+    file_upload_write(sess, dest_d, buf, rlen);
     sess->file->rest -= rlen;
     sess->file->package_rest -= rlen;
   }

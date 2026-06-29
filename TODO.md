@@ -1,5 +1,8 @@
 ## Tasks
 
+# Testing
+- [ ] file_receive_prepare / file_send_prepare more reliable line processing
+
 # Development plans
 
 - [ ] Remove file when error while saving the data in DB

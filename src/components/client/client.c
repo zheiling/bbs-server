@@ -12,8 +12,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#define DEF_LIMIT 15
-#define DEF_PAGE_NUM 1
+#define DIF_LIMIT 15
+#define DIF_PAGE_NUM 1
 
 void process_client_command(char *line, session *sess, server_data_t *s_d) {
   char arg_1[32];
@@ -32,9 +32,9 @@ void process_client_command(char *line, session *sess, server_data_t *s_d) {
       switch (ret) {
       case EOF:
       case 0:
-        fl_args.limit = DEF_LIMIT;
+        fl_args.limit = DIF_LIMIT;
       case 1:
-        fl_args.page = DEF_PAGE_NUM;
+        fl_args.page = DIF_PAGE_NUM;
       }
       file_list(sess, &fl_args);
       return;
@@ -66,9 +66,9 @@ void process_client_command(char *line, session *sess, server_data_t *s_d) {
 
       switch (ret) {
       case 2:
-        fl_args.limit = DEF_LIMIT;
+        fl_args.limit = DIF_LIMIT;
       case 3:
-        fl_args.page = DEF_PAGE_NUM;
+        fl_args.page = DIF_PAGE_NUM;
       }
 
       /* by name */

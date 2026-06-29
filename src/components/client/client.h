@@ -7,4 +7,7 @@
 #include <main.h>
 void process_client_command(char *line, session *sess, server_data_t *s_d);
 void download_confirm(char *line, session *sess, server_data_t *s_d);
+
+/* TEST */
+void process_client_command(char *line, session *sess, server_data_t *s_d);
 #endif

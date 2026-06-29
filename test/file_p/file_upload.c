@@ -24,8 +24,6 @@ extern char *print_str;
 extern void *print_str_arr;
 char *str2snd;
 
-/* TODO: complete tasks in function and write new tests for them */
-
 void __wrap_session_send_string(struct session *sess, const char *fmt, ...) {
   assert_string_equal(fmt, str2snd);
 }

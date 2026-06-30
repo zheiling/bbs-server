@@ -155,8 +155,21 @@ int32_t file_send_prepare(session *sess, char *line, server_data_t *s_d) {
   char err_mes[256];
   int32_t mlen;
 
-  char *name_begin = strchr(line, '[') + 1;
+  char *name_begin = strchr(line, '[');
+  if (name_begin == NULL) {
+    session_send_string(sess,
+                        "Error: can't find starting character \"[\" for the file name");
+    clear_file_from_sess(sess);
+    return -4;
+  }
+  name_begin += 1;
   char *name_end = strrchr(line, ']');
+    if (name_end == NULL) {
+    session_send_string(sess,
+                        "Error: can't find ending character \"]\" for the file name");
+    clear_file_from_sess(sess);
+    return -5;
+  }
   int name_len = name_end - name_begin;
   strncpy(args.name, name_begin, name_len);
   args.name[name_len] = 0;
@@ -202,8 +215,20 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
   int sd = sess->sd;
   size_t fsize = 0;
   int perm;
-  char *name_begin = strchr(line, '"') + 1;
-  char *name_end = strrchr(line, '"');
+  char *name_begin = strchr(line, '"');
+  if (name_begin == NULL) {
+    session_send_string(sess,
+                        "Error: can't find starting character \" for the file name");
+    clear_file_from_sess(sess);
+    return -5;
+  }
+  name_begin += 1;
+  char *name_end = strrchr(name_begin, '"');
+  if (name_end == NULL) {
+    session_send_string(sess, "Error: can't find ending character \" for the file name");
+    clear_file_from_sess(sess);
+    return -6;
+  }
   int name_len = name_end - name_begin;
   sscanf(name_end, "\" %zd %d", &fsize, &perm);
   sess->file = malloc(sizeof(s_file_t));
@@ -222,16 +247,15 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
   size_t available_space = st_str.f_bavail * st_str.f_bsize;
 
   if (strlen(sess->file->name) > st_str.f_namemax) {
-    mes_len = sprintf(mes, "file name is too long\n");
-    write(sd, mes, mes_len);
+    session_send_string(sess, "file name is too long\n");
     sess->state = OP_WAIT;
     clear_file_from_sess(sess);
     return -1;
   }
 
   if (fsize > available_space) {
-    mes_len = sprintf(mes, "There is no space for such size! (%ld)\n", fsize);
-    write(sd, mes, mes_len);
+    session_send_string(sess, "There is no space for such size! (%ld)\n",
+                        fsize);
     clear_file_from_sess(sess);
     return -2;
   }
@@ -254,7 +278,7 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
 
     if (!directory_exists(hashed_dir_name)) {
       if (mkdir(hashed_dir_name, 0700) != 0) {
-        write(sd, ERR_FSV, sizeof ERR_FSV - 1);
+        session_send_string(sess, ERR_FSV);
         clear_file_from_sess(sess);
         return -4;
       }
@@ -267,13 +291,15 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
         seed++;
         continue;
       }
-      write(sd, ERR_FSV, sizeof ERR_FSV - 1);
+      session_send_string(sess, ERR_FSV);
       clear_file_from_sess(sess);
       sess->file = NULL;
       return -3;
     }
     break;
   }
+
+  
 
   mes_len = sprintf(mes, "accept");
   sess->fd = file_d;

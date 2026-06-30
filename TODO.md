@@ -1,7 +1,8 @@
 ## Tasks
 
 # Testing
-- [ ] file_receive_prepare / file_send_prepare more reliable line processing
+- [x] file_receive_prepare / file_send_prepare more reliable line processing
+- [ ] test empty names
 
 # Development plans
 

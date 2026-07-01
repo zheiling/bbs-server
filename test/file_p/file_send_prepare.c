@@ -46,7 +46,7 @@ s_file_t *__wrap_db_get_file(i_get_file_db *arg) {
 
 int __wrap_open(const char *__file, int __oflag, ...) { return mock_type(int); }
 
-void test__file_receive_prepare__regular(void **state) {
+void test__file_send_prepare__regular(void **state) {
   s_file_t file = {.name = FNAME, .size = FSIZE, .hash = FHASH, .id = FID};
   char line[] = "[" FNAME "]";
   session sess = {
@@ -67,7 +67,7 @@ void test__file_receive_prepare__regular(void **state) {
   assert_string_equal(file.path, "./storage/00/03390c");
 }
 
-void test__file_receive_prepare__name_not_correct_start(void **state) {
+void test__file_send_prepare__name_not_correct_start(void **state) {
   s_file_t file = {.name = FNAME, .size = FSIZE, .hash = FHASH, .id = FID};
   char line[] = FNAME;
   str2snd = "Error: can't find starting character \"[\" for the file name";
@@ -82,7 +82,7 @@ void test__file_receive_prepare__name_not_correct_start(void **state) {
   assert_ptr_equal(sess.file, NULL);
 }
 
-void test__file_receive_prepare__name_not_correct_end(void **state) {
+void test__file_send_prepare__name_not_correct_end(void **state) {
   s_file_t file = {.name = FNAME, .size = FSIZE, .hash = FHASH, .id = FID};
   char line[] = "[" FNAME;
   str2snd = "Error: can't find ending character \"]\" for the file name";
@@ -155,17 +155,33 @@ void test__file_send_prepare__size_not_correct(void **state) {
   dbuf_destroy(&dbuf);
 }
 
+
+void test__file_send_prepare__name_empty(void **state) {
+  char line[] = "[]" ;
+  str2snd = "File name should not be empty";
+  session sess = {
+      .uname = "user1234",
+      .sd = 0,
+      .file = NULL,
+  };
+  int res = 0;
+  res = file_send_prepare(&sess, line, NULL);
+  assert_int_equal(res, -6);
+  assert_ptr_equal(sess.file, NULL);
+}
+
 int setup(void **state) { return 0; }
 int tear_down(void **state) { return 0; }
 
 int main(int argc, char **argv) {
   const struct CMUnitTest tests[] = {
-      cmocka_unit_test(test__file_receive_prepare__regular),
-      cmocka_unit_test(test__file_receive_prepare__name_not_correct_start),
-      cmocka_unit_test(test__file_receive_prepare__name_not_correct_end),
+      cmocka_unit_test(test__file_send_prepare__regular),
+      cmocka_unit_test(test__file_send_prepare__name_not_correct_start),
+      cmocka_unit_test(test__file_send_prepare__name_not_correct_end),
       cmocka_unit_test(test__file_send_prepare__no_open),
       cmocka_unit_test(test__file_send_prepare__db_no_file),
       cmocka_unit_test(test__file_send_prepare__size_not_correct),
+      cmocka_unit_test(test__file_send_prepare__name_empty),
   };
 
   return cmocka_run_group_tests(tests, setup, tear_down);

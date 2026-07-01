@@ -98,7 +98,21 @@ void test__file_receive_prepare__regular(void **state) {
 }
 
 /* CASE: Name not correct (start) */
-void test__file_receive_prepare_name_not_correct_start(void **state) {
+void test__file_receive_prepare_name_not_correct_start_1(void **state) {
+  char line[] = FNAME " " FSIZE_S " 1";
+  str2snd = "Error: can't find starting character \" for the file name";
+  session sess = {
+      .uname = "user1234",
+      .sd = 0,
+      .file = NULL,
+  };
+  int res = 0;
+  res = file_receive_prepare(&sess, line, NULL);
+  assert_int_equal(res, -5);
+}
+
+/* CASE: Name not correct (start) */
+void test__file_receive_prepare_name_not_correct_start_2(void **state) {
   char line[] = FNAME "\" " FSIZE_S " 1";
   str2snd = "Error: can't find ending character \" for the file name";
   session sess = {
@@ -182,7 +196,7 @@ void test__file_receive_prepare__err_dir(void **state) {
   dbuf_destroy(&dbuf);
 }
 
-/* CASE: Error in the file's name */
+/* CASE: Error in the file name */
 void test__file_receive_prepare__name_err(void **state) {
   dbuf = dbuf_init(INBUFSIZE);
   char line[] = "\"" FNAME "\" " FSIZE_S " 1";
@@ -203,8 +217,23 @@ void test__file_receive_prepare__name_err(void **state) {
   dbuf_destroy(&dbuf);
 }
 
+/* CASE: Error empty name */
+void test__file_receive_prepare__name_empty(void **state) {
+  char line[] = "\"\" " FSIZE_S " 1";
+  str2snd = "File name should not be empty";
+  session sess = {
+      .uname = "user1234",
+      .sd = 0,
+      .file = NULL,
+  };
+  int res = 0;
+  res = file_receive_prepare(&sess, line, NULL);
+  assert_int_equal(res, -7);
+  assert_ptr_equal(sess.file, NULL);
+}
+
 /* CASE: File with such name already exist */
-void test__file_receive_prepare__exists(void **state) {
+void test__file_receive_prepare__exist(void **state) {
   dbuf = dbuf_init(INBUFSIZE);
   char line[] = "\"" FNAME "\" " FSIZE_S " 1";
   session sess = {
@@ -237,13 +266,15 @@ int tear_down(void **state) { return 0; }
 int main(int argc, char **argv) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test__file_receive_prepare__regular),
-      cmocka_unit_test(test__file_receive_prepare_name_not_correct_start),
+      cmocka_unit_test(test__file_receive_prepare_name_not_correct_start_1),
+      cmocka_unit_test(test__file_receive_prepare_name_not_correct_start_2),
       cmocka_unit_test(test__file_receive_prepare_name_not_correct_end),
       cmocka_unit_test(test__file_receive_prepare__name_too_long),
       cmocka_unit_test(test__file_receive_prepare__no_space),
       cmocka_unit_test(test__file_receive_prepare__err_dir),
       cmocka_unit_test(test__file_receive_prepare__name_err),
-      cmocka_unit_test(test__file_receive_prepare__exists),
+      cmocka_unit_test(test__file_receive_prepare__exist),
+      cmocka_unit_test(test__file_receive_prepare__name_empty),
   };
 
   return cmocka_run_group_tests(tests, setup, tear_down);

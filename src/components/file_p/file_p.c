@@ -157,20 +157,26 @@ int32_t file_send_prepare(session *sess, char *line, server_data_t *s_d) {
 
   char *name_begin = strchr(line, '[');
   if (name_begin == NULL) {
-    session_send_string(sess,
-                        "Error: can't find starting character \"[\" for the file name");
+    session_send_string(
+        sess, "Error: can't find starting character \"[\" for the file name");
     clear_file_from_sess(sess);
     return -4;
   }
   name_begin += 1;
   char *name_end = strrchr(line, ']');
-    if (name_end == NULL) {
-    session_send_string(sess,
-                        "Error: can't find ending character \"]\" for the file name");
+  if (name_end == NULL) {
+    session_send_string(
+        sess, "Error: can't find ending character \"]\" for the file name");
     clear_file_from_sess(sess);
     return -5;
   }
   int name_len = name_end - name_begin;
+  if (name_len == 0) {
+    session_send_string(
+        sess, "File name should not be empty");
+    clear_file_from_sess(sess);
+    return -6;
+  }
   strncpy(args.name, name_begin, name_len);
   args.name[name_len] = 0;
   sess->file = db_get_file(&args);
@@ -217,19 +223,26 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
   int perm;
   char *name_begin = strchr(line, '"');
   if (name_begin == NULL) {
-    session_send_string(sess,
-                        "Error: can't find starting character \" for the file name");
+    session_send_string(
+        sess, "Error: can't find starting character \" for the file name");
     clear_file_from_sess(sess);
     return -5;
   }
   name_begin += 1;
   char *name_end = strrchr(name_begin, '"');
   if (name_end == NULL) {
-    session_send_string(sess, "Error: can't find ending character \" for the file name");
+    session_send_string(
+        sess, "Error: can't find ending character \" for the file name");
     clear_file_from_sess(sess);
     return -6;
   }
   int name_len = name_end - name_begin;
+  if (name_len == 0) {
+    session_send_string(
+        sess, "File name should not be empty");
+    clear_file_from_sess(sess);
+    return -7;
+  }
   sscanf(name_end, "\" %zd %d", &fsize, &perm);
   sess->file = malloc(sizeof(s_file_t));
   sess->file->name = malloc(sizeof(char) * (name_len + 1));
@@ -298,8 +311,6 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
     }
     break;
   }
-
-  
 
   mes_len = sprintf(mes, "accept");
   sess->fd = file_d;

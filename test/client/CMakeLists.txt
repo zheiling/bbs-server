@@ -12,6 +12,6 @@ target_link_libraries(process_client_command
     test_utils
 )
 
-target_link_options(process_client_command PRIVATE -Wl,--wrap=file_list,--wrap=file_send_prepare,--wrap=file_receive_prepare)
+target_link_options(process_client_command PRIVATE -Wl,--wrap=file_list,--wrap=file_send_prepare,--wrap=file_receive_prepare,--wrap=session_send_string)
 
 add_test(NAME client_process_client_command_test_1 COMMAND process_client_command)

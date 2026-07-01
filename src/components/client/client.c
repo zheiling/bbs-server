@@ -2,18 +2,15 @@
 /* Copyright (c) 2026 Oleksandr Zhylin */
 
 #include <client.h>
+#include <fcntl.h>
 #include <file_p.h>
 #include <main.h>
 #include <session.h>
-#include <utils.h>
-#include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
-#define DIF_LIMIT 15
-#define DIF_PAGE_NUM 1
+#include <utils.h>
 
 void process_client_command(char *line, session *sess, server_data_t *s_d) {
   char arg_1[32];
@@ -23,7 +20,15 @@ void process_client_command(char *line, session *sess, server_data_t *s_d) {
   fl_args.name = NULL;
   int32_t ret = 0;
 
-  sscanf(line, "%s %s", arg_1, arg_2);
+  ret = sscanf(line, "%s %s", arg_1, arg_2);
+
+  if (ret == 1) {
+    if (!strcmp(arg_1, "file")) {
+      session_send_string(sess,
+                          "Available commands: list, upload, download, search");
+      return;
+    }
+  }
 
   if (!strcmp(arg_1, "file")) {
     /* LIST */
@@ -60,11 +65,18 @@ void process_client_command(char *line, session *sess, server_data_t *s_d) {
     if (!strcmp(arg_2, "search")) {
       char *s_type = arg_1; /* since we don't need the contents of arg_1 and
                                arg_2 variables */
-      char *s_val = arg_2;
+      char *s_val = NULL;
       ret = sscanf(line, "%*s %*s %s %s %u %u", s_type, s_val, &(fl_args.limit),
                    &(fl_args.page));
 
       switch (ret) {
+      case 0:
+      case -1:
+        session_send_string(sess, "The search criteria is not specified!");
+        return;
+      case 1:
+        session_send_string(sess, "The file name is not specified!");
+        return;
       case 2:
         fl_args.limit = DIF_LIMIT;
       case 3:

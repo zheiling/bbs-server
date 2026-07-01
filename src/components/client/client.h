@@ -4,6 +4,9 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
+#define DIF_LIMIT 15
+#define DIF_PAGE_NUM 1
+
 #include <main.h>
 void process_client_command(char *line, session *sess, server_data_t *s_d);
 void download_confirm(char *line, session *sess, server_data_t *s_d);

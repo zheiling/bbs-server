@@ -101,7 +101,7 @@ void process_client_command(char *line, session *sess, server_data_t *s_d) {
 
 void download_confirm(char *line, session *sess, server_data_t *s_d) {
   if (!strncmp(line, "continue", sizeof "continue" - 1)) {
-    int pac_siz = 0;
+    int pac_siz = PACKAGE_SIZE;
     sscanf(line, "continue %d\n", &pac_siz);
     sess->state = OP_DOWNLOAD;
     sess->file->package_rest = pac_siz;
@@ -112,5 +112,7 @@ void download_confirm(char *line, session *sess, server_data_t *s_d) {
               sess->file->name);
     clear_file_from_sess(sess);
     sess->state = OP_WAIT;
+    return;
   }
+  print_log(stdout, pl_info, "The answer is not correct. Send either \"continue \%PACKAGE_SIZE\% or \"cancel\"");
 }

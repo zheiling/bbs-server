@@ -1,5 +1,9 @@
 ## Tasks
 
+# Testing
+
+- [ ] Tests for the server module
+
 # Development plans
 
 - [ ] Remove file when error while saving the data in DB

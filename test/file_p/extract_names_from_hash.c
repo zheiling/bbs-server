@@ -1,16 +1,11 @@
 #include <cmocka.h>
 #include <db/db.h>
-#include <setjmp.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-
 
 #include <file_p.h>
 #include <main.h>
-#include <string.h>
 #include <sys/cdefs.h>
 #include <unistd.h>
 

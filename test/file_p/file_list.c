@@ -1,6 +1,5 @@
 #include <cmocka.h>
 #include <db/db.h>
-#include <setjmp.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>

@@ -1,23 +1,24 @@
 /* SPDX-License-Identifier: MIT */
 /* Copyright (c) 2026 Oleksandr Zhylin */
 
-#include <db.h>
-#include <file_p.h>
-#include <main.h>
-#include <session.h>
-#include <utils.h>
 #include <arpa/inet.h>
+#include <db.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <file_p.h>
+#include <main.h>
 #include <netinet/in.h>
+#include <session.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <utils.h>
 
 volatile sig_atomic_t shutdown_requested = 0;
 volatile sig_atomic_t signal_received = 0;
@@ -78,7 +79,7 @@ void server_main_loop(server_data_t *s_d) {
     }
 
     if (sr == -1) {
-      perror("select");
+      print_log(stderr, pl_error, "select: %s", strerror(errno));
       exit(6);
     }
 
@@ -119,7 +120,8 @@ void server_main_loop(server_data_t *s_d) {
 char *get_welcome_mes(void) {
   int fd = open(WELCOME_FILE_NAME, O_RDONLY);
   if (fd == -1) {
-    perror(WELCOME_FILE_NAME);
+    print_log(stderr, pl_fatal, "starting, welcome file \"%s\": %s\n",
+              WELCOME_FILE_NAME, strerror(errno));
     exit(7);
   }
   int filesize = lseek(fd, 0, SEEK_END) + 1;
@@ -127,7 +129,8 @@ char *get_welcome_mes(void) {
   char *welcome_message =
       mmap(NULL, filesize, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
   if (welcome_message == MAP_FAILED) {
-    perror(WELCOME_FILE_NAME);
+    print_log(stderr, pl_fatal, "starting, welcome file \"%s\": %s\n",
+              WELCOME_FILE_NAME, strerror(errno));
     close(fd);
     exit(5);
   }
@@ -150,13 +153,14 @@ int start_server(void) {
 
   res = bind(ls, (struct sockaddr *)&s_addr, sizeof(s_addr));
   if (res == -1) {
-    perror("bind");
+    print_log(stderr, pl_fatal, "starting, socket bind: %s\n", strerror(errno));
     exit(3);
   }
 
   res = listen(ls, LISTEN_QLEN);
   if (res == -1) {
-    perror("listen");
+    print_log(stderr, pl_fatal, "starting, socket listen: %s\n",
+              strerror(errno));
     exit(4);
   }
   return ls;
@@ -169,7 +173,7 @@ void prepare_start(int argc, char *argv[]) {
   }
 
   if (-1 == chdir(argv[1])) {
-    perror(argv[1]);
+    print_log(stderr, pl_fatal, "chdir: \"%s\" %s\n", argv[1], strerror(errno));
     exit(2);
   }
 

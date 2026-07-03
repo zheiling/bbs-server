@@ -5,7 +5,7 @@
 - [ ] Tests for the server module
 
 # Development plans
-
+- [ ] make print_log to write a file log
 - [ ] Remove file when error while saving the data in DB
 - [ ] Colorize server messages
 

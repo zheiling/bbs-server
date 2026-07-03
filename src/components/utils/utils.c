@@ -32,7 +32,7 @@ int print_log(FILE *output, enum pl_type type, const char *format_message,
   char *uf_str = malloc(strlen(date_preffix) + 16 + strlen(format_message) + 4);
   sprintf(uf_str, uff_str, date_preffix, format_message);
   va_start(args, format_message);
-  ret = vfprintf(stdout, uf_str, args);
+  ret = vfprintf(output, uf_str, args);
   va_end(args);
   return ret;
 }

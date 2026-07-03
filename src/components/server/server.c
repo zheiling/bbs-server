@@ -144,24 +144,33 @@ int start_server(void) {
   int ls = socket(AF_INET, SOCK_STREAM, 0);
   struct sockaddr_in s_addr;
 
+  if (ls == -1) {
+    print_log(stderr, pl_fatal, "starting, socket: %s\n", strerror(errno));
+    exit(3);
+  }
+
   s_addr.sin_family = AF_INET;
   s_addr.sin_port = htons(PORT);
   s_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
   int opt = 1;
-  setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+  res = setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+  if (res == -1) {
+    print_log(stderr, pl_fatal, "starting, setsockopt: %s\n", strerror(errno));
+    exit(4);
+  }
 
   res = bind(ls, (struct sockaddr *)&s_addr, sizeof(s_addr));
   if (res == -1) {
     print_log(stderr, pl_fatal, "starting, socket bind: %s\n", strerror(errno));
-    exit(3);
+    exit(5);
   }
 
   res = listen(ls, LISTEN_QLEN);
   if (res == -1) {
     print_log(stderr, pl_fatal, "starting, socket listen: %s\n",
               strerror(errno));
-    exit(4);
+    exit(6);
   }
   return ls;
 }

@@ -8,6 +8,7 @@
 - [ ] make print_log to write a file log
 - [ ] Remove file when error while saving the data in DB
 - [ ] Colorize server messages
+- [ ] Unified list of exit codes
 
 ## Features
 

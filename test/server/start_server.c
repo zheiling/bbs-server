@@ -4,7 +4,6 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
 
@@ -16,8 +15,6 @@
 int _errno = 0;
 int _exit_code = 0;
 extern void *print_str_arr;
-
-/* TODO: finish */
 
 int __wrap_socket(int __domain, int __type, int __protocol) {
   errno = _errno;
@@ -79,6 +76,34 @@ void test__start_server_err_setsockopt(void **state) {
   assert_int_equal(_exit_code, 4);
 }
 
+void test__start_server_err_bind(void **state) {
+  _errno = EBADF;
+  will_return(__wrap_socket, 1);
+  will_return(__wrap_setsockopt,0);
+  will_return(__wrap_bind, -1);
+  will_return(__wrap_listen, 0);
+
+  const char *fmt_args[] = {"starting, socket bind: %s\n", strerror(_errno),
+                            NULL};
+  print_str_arr = fmt_args;
+  start_server();
+  assert_int_equal(_exit_code, 5);
+}
+
+void test__start_server_err_listen(void **state) {
+  _errno = EBADF;
+  will_return(__wrap_socket, 1);
+  will_return(__wrap_setsockopt,0);
+  will_return(__wrap_bind, 0);
+  will_return(__wrap_listen, -1);
+
+  const char *fmt_args[] = {"starting, socket listen: %s\n", strerror(_errno),
+                            NULL};
+  print_str_arr = fmt_args;
+  start_server();
+  assert_int_equal(_exit_code, 6);
+}
+
 int setup(void **state) {
   print_str_arr = NULL;
   return 0;
@@ -89,6 +114,8 @@ int main(int argc, char **argv) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test__start_server_success),
       cmocka_unit_test(test__start_server_err_socket),
+      cmocka_unit_test(test__start_server_err_bind),
+      cmocka_unit_test(test__start_server_err_listen),
   };
 
   return cmocka_run_group_tests(tests, setup, tear_down);

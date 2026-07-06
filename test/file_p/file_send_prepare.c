@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <utils.h>
 #include <test_utils.h>
+
 char *str2snd = NULL;
 
 dbuf_t *dbuf;

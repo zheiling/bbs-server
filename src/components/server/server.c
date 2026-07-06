@@ -176,7 +176,7 @@ int start_server(void) {
 }
 
 void prepare_start(int argc, char *argv[]) {
-  if (argc != 2) {
+  if (argc < 2) {
     print_log(stdout, pl_error, "Usage: %s <work_dir>\n", argv[0]);
     exit(1);
   }
@@ -187,6 +187,10 @@ void prepare_start(int argc, char *argv[]) {
   }
 
   if (!directory_exists(STORAGE_FOLDER)) {
-    mkdir(STORAGE_FOLDER, 0700);
+    if (mkdir(STORAGE_FOLDER, 0700) == -1) {
+      print_log(stderr, pl_fatal, "mkdir: \"%s\" %s\n", argv[1],
+                strerror(errno));
+      exit(8);
+    }
   }
 }

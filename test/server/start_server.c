@@ -49,13 +49,13 @@ void test__start_server_success(void **state) {
 }
 
 void test__start_server_err_socket(void **state) {
-  _errno = EACCES;
   will_return(__wrap_socket, -1);
-
+  
   will_return(__wrap_setsockopt, 0);
   will_return(__wrap_bind, 0);
   will_return(__wrap_listen, 0);
-
+  
+  _errno = EACCES;
   const char *fmt_args[] = {"starting, socket: %s\n", strerror(_errno), NULL};
   print_str_arr = fmt_args;
   start_server();

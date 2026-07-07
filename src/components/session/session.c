@@ -51,8 +51,7 @@ session *make_new_session(int fd, struct sockaddr_in *from, char *wm) {
   sess->file = NULL;
   sess->fl_start = NULL;
   sess->fl_current = NULL;
-  session_send_string(sess, wm);
-  session_send_string(sess, "login> ");
+  session_send_string(sess, "%slogin> ", wm);
   return sess;
 }
 

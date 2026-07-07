@@ -23,6 +23,8 @@
 volatile sig_atomic_t shutdown_requested = 0;
 volatile sig_atomic_t signal_received = 0;
 
+void set_signals(sigset_t *orig_mask);
+
 void term_int_handler(int s) {
   shutdown_requested = 1;
   signal_received = s;
@@ -31,14 +33,9 @@ void term_int_handler(int s) {
 void server_main_loop(server_data_t *s_d) {
   fd_set readfds;
   int i, sr;
-  sigset_t mask, orig_mask;
+  sigset_t orig_mask;
+  set_signals(&orig_mask);
 
-  signal(SIGINT, term_int_handler);
-  signal(SIGTERM, term_int_handler);
-  sigemptyset(&mask);
-  sigaddset(&mask, SIGINT);
-  sigaddset(&mask, SIGTERM);
-  sigprocmask(SIG_BLOCK, &mask, &orig_mask);
   session *connections[MAX_CONNECTIONS];
 
   for (i = 0; i < MAX_CONNECTIONS; i++) {
@@ -69,7 +66,6 @@ void server_main_loop(server_data_t *s_d) {
         }
       }
     }
-
     sr = pselect(maxfd + 1, &readfds, NULL, NULL, NULL, &orig_mask);
 
     if (shutdown_requested != 0) {
@@ -193,4 +189,15 @@ void prepare_start(int argc, char *argv[]) {
       exit(8);
     }
   }
+}
+
+void set_signals(sigset_t *orig_mask) {
+  sigset_t mask;
+
+  signal(SIGINT, term_int_handler);
+  signal(SIGTERM, term_int_handler);
+  sigemptyset(&mask);
+  sigaddset(&mask, SIGINT);
+  sigaddset(&mask, SIGTERM);
+  sigprocmask(SIG_BLOCK, &mask, orig_mask);
 }

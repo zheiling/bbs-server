@@ -65,7 +65,7 @@ target_link_options(file_send_prepare PRIVATE -Wl,--wrap=write,--wrap=print_log,
 
 add_test(NAME file_p_file_send_prepare_test_1 COMMAND file_send_prepare)
 
-# ---/ file_receive_prepare /-------------------------------------------
+# ---/ file_receive_prepare /----------------------------------------
 
 add_executable(file_receive_prepare
     file_receive_prepare.c
@@ -83,7 +83,7 @@ target_link_options(file_receive_prepare PRIVATE -Wl,--wrap=statvfs,--wrap=stat,
 
 add_test(NAME file_p_file_receive_prepare_test_1 COMMAND file_receive_prepare)
 
-# ---/ clear_file_from_sess /-------------------------------------------
+# ---/ clear_file_from_sess /----------------------------------------
 
 add_executable(clear_file_from_sess
     clear_file_from_sess.c
@@ -101,7 +101,7 @@ target_link_options(clear_file_from_sess PRIVATE -Wl,--wrap=free)
 
 add_test(NAME file_p_clear_file_from_sess_test_1 COMMAND clear_file_from_sess)
 
-# ---/ file_download /-------------------------------------------
+# ---/ file_download /-----------------------------------------------
 
 add_executable(file_download
     file_download.c
@@ -120,7 +120,7 @@ target_link_options(file_download PRIVATE -Wl,--wrap=print_log,--wrap=read,--wra
 
 add_test(NAME file_p_file_download_test_1 COMMAND file_download)
 
-# ---/ file_upload /-------------------------------------------
+# ---/ file_upload /-------------------------------------------------
 
 add_executable(file_upload
     file_upload.c

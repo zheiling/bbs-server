@@ -482,10 +482,10 @@ fin:
     print_log(stdout, pl_info, "File %s is uploaded to the server\n",
               sess->file->name);
     session_send_string(sess, "finished\n");
-    if (db_save_file(sess)) {
-      clear_file_from_sess(sess);
-    }
-    sess->state = OP_WAIT;
+    sess->state = OP_UPLOAD_DESCRIPTION;
+    // if (db_save_file(sess)) {
+    //   clear_file_from_sess(sess);
+    // }
   }
 }
 

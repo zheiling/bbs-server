@@ -108,7 +108,7 @@ void file_list(session *sess, i_file_list_t *f_args) {
                         fl_current->size, fl_current->owner);
     int d_len = strlen(fl_current->description);
 
-    for (int i = h_len; i < d_len; i++) {
+    for (int i = 0; i < d_len; i++) {
       if (fl_current->description[i] == '\n') {
         fl_current->description[i] = '\a';
       }

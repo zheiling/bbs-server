@@ -3,9 +3,7 @@
 
 /* TODO: variadic function for preparing parameters */
 
-#include "../main.h"
-#include "../utils.h"
-#include "db_common.h"
+#include <main.h>
 #include <db.h>
 #include <endian.h>
 #include <fcntl.h>
@@ -18,6 +16,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "utils.h"
+#include "db_common.h"
 
 #define UNUSED(x) (void)(x)
 #define Q_LEN 128
@@ -198,15 +198,14 @@ int32_t db_user_create(i_db_user_create *args) {
   return ret_value;
 }
 
-int32_t db_save_file(session *s) {
+int32_t db_save_file(s_file_t *sf, int uid) {
   const char *paramValues[6];
   int paramFormats[6];
   int paramLengths[6];
   /* int collision_id = 0; */
-  s_file_t *sf = s->file;
   char empty_str[] = "";
 
-  int32_t uid_n = htonl(s->uid);
+  int32_t uid_n = htonl(uid);
   size_t size_n = htobe64(sf->size);
   int32_t hash_n = htonl(sf->hash);
   int32_t perm_n = htonl(sf->permissions);

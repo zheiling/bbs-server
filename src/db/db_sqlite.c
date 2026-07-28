@@ -3,7 +3,6 @@
 
 #include <main.h>
 #include <utils.h>
-#include "db_common.h"
 #include <db.h>
 #include <endian.h>
 #include <openssl/sha.h>
@@ -16,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "db_common.h"
 
 #define UNUSED(x) (void)(x)
 #define Q_LEN 128
@@ -284,8 +284,7 @@ enum db_cb_resp db_save_file_cb(sqlite3_stmt *stmt, void *resp) {
   return res;
 };
 
-int32_t db_save_file(session *s) {
-  s_file_t *sfP = s->file;
+int32_t db_save_file(s_file_t *sfP, int uid) {
   struct db_save_file_data resp_data = {.id = 0};
   const char empty_str[] = "";
   enum db_cb_resp res = db_no_result;
@@ -296,7 +295,7 @@ int32_t db_save_file(session *s) {
                  "hash, description, permissions) "
                  "VALUES ($1, $2, $3, date(), $4, $5, $6) "
                  "RETURNING id",
-                 db_save_file_cb, &resp_data, arg_types, s->uid, sfP->name,
+                 db_save_file_cb, &resp_data, arg_types, uid, sfP->name,
                  sfP->size, sfP->hash,
                  sfP->description != NULL ? sfP->description : empty_str,
                  sfP->permissions);

@@ -2,14 +2,12 @@
 /* Copyright (c) 2026 Oleksandr Zhylin */
 
 #include "session.h"
-#include <client.h>
-#include <file_p.h>
-#include <main.h>
-#include <user.h>
-#include <utils.h>
 #include <arpa/inet.h>
+#include <client.h>
 #include <db.h>
 #include <fcntl.h>
+#include <file_p.h>
+#include <main.h>
 #include <netinet/in.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -19,6 +17,8 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <user.h>
+#include <utils.h>
 
 session *make_new_session(int fd, struct sockaddr_in *from, char *wm);
 
@@ -206,14 +206,16 @@ void perform_session_action(session *sess, char *line, server_data_t *s_d) {
   case OP_UPLOAD_DESCRIPTION:
     res = file_upload_description(sess, line, s_d);
     if (res) {
-      if (db_save_file(sess)) {
+      if (db_save_file(sess->file, sess->uid)) {
         session_send_string(sess, "File \"%s\" is saved!\04\n",
                             sess->file->name);
-        clear_file_from_sess(sess);
-        sess->state = OP_WAIT;
       } else {
-        // TODO: error case
+        session_send_string(sess, "Error while saving the file %s!\04\n",
+                            sess->file->name);
+        unlink(sess->file->path);
       }
+      clear_file_from_sess(sess);
+      sess->state = OP_WAIT;
     }
     break;
   case OP_DOWNLOAD_WAIT_CONFIRM_PACKAGE:

@@ -47,7 +47,7 @@ typedef struct {
 enum db_cb_resp { db_no_result, db_success, db_err, db_fail }; /* fail: the problem is on the user's side; no error */
 
 int32_t init_db_connection();
-int32_t db_save_file(session *s);
+int32_t db_save_file(s_file_t *sfP, int uid);
 int32_t db_user_auth(i_auth_t *credentials, o_auth_t *response);
 s_file_t *db_get_file(i_get_file_db *arg);
 int32_t db_get_files_data(i_get_files_db *arg, fl_t **fl_start,

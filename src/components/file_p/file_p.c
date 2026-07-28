@@ -172,8 +172,7 @@ int32_t file_send_prepare(session *sess, char *line, server_data_t *s_d) {
   }
   int name_len = name_end - name_begin;
   if (name_len == 0) {
-    session_send_string(
-        sess, "File name should not be empty");
+    session_send_string(sess, "File name should not be empty");
     clear_file_from_sess(sess);
     return -6;
   }
@@ -238,8 +237,7 @@ int file_receive_prepare(session *sess, char *line, server_data_t *s_d) {
   }
   int name_len = name_end - name_begin;
   if (name_len == 0) {
-    session_send_string(
-        sess, "File name should not be empty");
+    session_send_string(sess, "File name should not be empty");
     clear_file_from_sess(sess);
     return -7;
   }
@@ -367,7 +365,7 @@ void file_download(session *sess) {
   int rlen = read(source_d, buf, read_len);
   if (rlen == 0) {
     if (sess->file->rest) {
-      print_log(stdout, pl_error, "Error downloading file %s!\n",
+      print_log(stdout, pl_fail, "Fail while downloading file %s!\n",
                 sess->file->name);
       clear_file_from_sess(sess);
     }
@@ -377,7 +375,7 @@ void file_download(session *sess) {
   int ret = write(dest_d, buf, rlen);
   if (ret == -1) {
     const char *err_mes = strerror(errno);
-    print_log(stdout, pl_error, "Error downloading file %s! %s\n",
+    print_log(stdout, pl_fail, "Fail while downloading file %s! %s\n",
               sess->file->name, err_mes);
     sess->state = ERR;
     clear_file_from_sess(sess);
@@ -386,7 +384,7 @@ void file_download(session *sess) {
   sess->file->rest -= rlen;
   sess->file->package_rest -= rlen;
   if (!sess->file->rest) {
-    print_log(stdout, pl_info, "File %s is downloaded from the server\n",
+    print_log(stdout, pl_success, "File %s is downloaded from the server\n",
               sess->file->name);
     clear_file_from_sess(sess);
     sess->state = OP_WAIT;
@@ -402,10 +400,10 @@ void file_download(session *sess) {
   {                                                                            \
     int res = write(dest_d, buf, len);                                         \
     if (res == -1) {                                                           \
-      session_send_string(                                                     \
-          sess, "There is an error sending the file named \"%s\"\n");          \
+      session_send_string(sess,                                                \
+                          "There is an error sending the file name \"%s\"\n"); \
       char *err_mes = strerror(errno);                                         \
-      print_log(stdout, pl_error, "Error uploading the file \"%s\": %s\n",     \
+      print_log(stdout, pl_fail, "Fail while uploading the file \"%s\": %s\n", \
                 sess->file->name, err_mes);                                    \
       close(dest_d);                                                           \
       unlink(sess->file->path); /* remove file */                              \
@@ -425,7 +423,7 @@ void file_upload(session *sess) {
 
   if (rlen == 0) {
     if (sess->file->rest) {
-      print_log(stdout, pl_error, "Error uploading file %s!\n",
+      print_log(stdout, pl_fail, "Fail while uploading file %s!\n",
                 sess->file->name);
       unlink(sess->file->path); /* remove file */
       clear_file_from_sess(sess);
@@ -460,7 +458,7 @@ void file_upload(session *sess) {
       sess->file->package_rest = fpd->package_size - rlen;
       break;
     case sig_cancel:
-      print_log(stdout, pl_error, "Upload of %s is cancelled!\n",
+      print_log(stdout, pl_fail, "Upload of %s is cancelled!\n",
                 sess->file->name);
       unlink(sess->file->path); /* remove file */
       clear_file_from_sess(sess);
@@ -479,7 +477,7 @@ void file_upload(session *sess) {
   }
 fin:
   if (!sess->file->rest) {
-    print_log(stdout, pl_info, "File %s is uploaded to the server\n",
+    print_log(stdout, pl_success, "File %s is uploaded to the server\n",
               sess->file->name);
     session_send_string(sess, "finished\n");
     sess->state = OP_UPLOAD_DESCRIPTION;

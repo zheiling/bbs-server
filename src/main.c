@@ -14,8 +14,10 @@ int main(int argc, char *argv[]) {
   init_db_connection();
   server_data.ls = start_server();
   /* TODO: display server port */
+  init_log_file();
   print_log(stdout, pl_info, "Server is started!\n");
   server_main_loop(&server_data);
   db_close_connection();
+  close_log_file();
   return 0;
 }

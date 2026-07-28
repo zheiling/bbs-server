@@ -1,9 +1,8 @@
 ## Tasks
 
 # Development plans
-- [ ] make print_log to write a file log
-- [ ] Remove file when error while saving the data in DB
-- [ ] Colorize server messages
+- [x] make print_log to write a file log
+- [x] Colorize server messages
 - [ ] Unified list of exit codes
 
 ## Features
